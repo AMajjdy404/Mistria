@@ -1,0 +1,6 @@
+@Mistria.API_HostAddress = http://localhost:5187
+
+GET {{Mistria.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

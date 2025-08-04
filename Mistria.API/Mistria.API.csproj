@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="14.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.18">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Mistria.Application\Mistria.Application.csproj" />
+    <ProjectReference Include="..\Mistria.Infrastructure\Mistria.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\Images\DayTripsCover\" />
+    <Folder Include="wwwroot\Images\DayTrips\" />
+    <Folder Include="wwwroot\Images\EventsCover\" />
+    <Folder Include="wwwroot\Images\ActivitiesCover\" />
+    <Folder Include="wwwroot\Images\ServicesCover\" />
+    <Folder Include="wwwroot\Images\WeddingsCover\" />
+    <Folder Include="wwwroot\Images\Programs\" />
+    <Folder Include="wwwroot\Images\ProgramsCover\" />
+  </ItemGroup>
+
+</Project>
