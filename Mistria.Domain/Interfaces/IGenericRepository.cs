@@ -34,5 +34,7 @@ namespace Mistria.Domain.Interfaces
         ValueTask<IDbContextTransaction> BeginTransactionAsync();
         ValueTask CommitAsync(IDbContextTransaction transaction);
         ValueTask RollbackAsync(IDbContextTransaction transaction);
+        ValueTask<int> CountAsync(Expression<Func<T, bool>> predicate = null);
+
     }
 }

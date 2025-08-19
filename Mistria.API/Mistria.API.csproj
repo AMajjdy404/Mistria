@@ -23,14 +23,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="wwwroot\Images\DayTripsCover\" />
-    <Folder Include="wwwroot\Images\DayTrips\" />
+    <Folder Include="Properties\" />
     <Folder Include="wwwroot\Images\EventsCover\" />
-    <Folder Include="wwwroot\Images\ActivitiesCover\" />
-    <Folder Include="wwwroot\Images\ServicesCover\" />
-    <Folder Include="wwwroot\Images\WeddingsCover\" />
     <Folder Include="wwwroot\Images\Programs\" />
-    <Folder Include="wwwroot\Images\ProgramsCover\" />
   </ItemGroup>
 
 </Project>

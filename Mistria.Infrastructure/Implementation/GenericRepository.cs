@@ -142,5 +142,14 @@ namespace Mistria.Infrastructure.Implementation
         {
             await transaction.RollbackAsync();
         }
+
+        public async ValueTask<int> CountAsync(Expression<Func<T, bool>> predicate = null)
+        {
+            if (predicate == null)
+                return await _context.Set<T>().CountAsync();
+
+            return await _context.Set<T>().CountAsync(predicate);
+        }
+
     }
 }

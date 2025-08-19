@@ -64,6 +64,10 @@ namespace Mistria.API.Controllers
             _mapper = mapper;
             _logger = logger;
         }
+
+
+
+        #region User
         [HttpPost("login")]
         public async Task<ActionResult<LoginResponseDto>> LoginOwner([FromBody] LoginDto loginDto)
         {
@@ -118,7 +122,7 @@ namespace Mistria.API.Controllers
                 return BadRequest(result.Errors);
             }
 
-            await _userManager.AddToRoleAsync(user,"Admin");
+            await _userManager.AddToRoleAsync(user, "Admin");
 
             _logger.LogInformation("Successfully added user with email: {Email}", registerDto.Email);
             return Ok("User added successfully");
@@ -227,6 +231,8 @@ namespace Mistria.API.Controllers
 
             return Ok();
         }
+
+        #endregion
 
         #region Program
         [HttpPost("addProgram")]
@@ -600,6 +606,7 @@ namespace Mistria.API.Controllers
 
         #region DayTrip
         [HttpPost("addDayTrip")]
+        [Authorize]
         public async Task<ActionResult> AddDayTrip([FromForm] DayTripDto dayTripDto)
         {
             _logger.LogInformation("Received AddDayTrip request. ItineraryJson: '{Json}'", dayTripDto.ItineraryJson ?? "null");
@@ -744,6 +751,7 @@ namespace Mistria.API.Controllers
         }
 
         [HttpPut("updateDayTrip/{id}")]
+        [Authorize]
         public async Task<ActionResult> UpdateDayTrip(int id, [FromForm] UpdateDayTripDto dayTripDto)
         {
             _logger.LogInformation("Received UpdateDayTrip request for Id: {Id}. ItineraryJson: '{Json}'", id, dayTripDto.ItineraryJson ?? "null");
@@ -892,6 +900,7 @@ namespace Mistria.API.Controllers
         }
 
         [HttpGet("getAllDayTrips")]
+        [Authorize]
         public async Task<ActionResult<List<DayTripReturnedDto>>> GetAllDayTrips()
         {
             _logger.LogInformation("Received GetAllDayTrips request");
@@ -912,6 +921,7 @@ namespace Mistria.API.Controllers
         }
 
         [HttpGet("getDayTripById/{id}")]
+        [Authorize]
         public async Task<ActionResult<DayTripReturnedDto>> GetDayTripById(int id)
         {
             _logger.LogInformation("Received GetDayTripById request for Id: {Id}", id);
@@ -938,6 +948,7 @@ namespace Mistria.API.Controllers
         }
 
         [HttpDelete("deleteDayTrip/{id}")]
+        [Authorize]
         public async Task<ActionResult> DeleteDayTrip(int id)
         {
             _logger.LogInformation("Received DeleteDayTrip request for Id: {Id}", id);
@@ -1912,5 +1923,22 @@ namespace Mistria.API.Controllers
         }
 
         #endregion
+
+        [HttpGet("statistics")]
+        public async Task<IActionResult> GetStatistics()
+        {
+            var stats = new DashboardStatisticsDto
+            {
+                TravelPrograms = await _travelProgramRepo.CountAsync(),
+                Services = await _serviceRepo.CountAsync(),
+                Weddings = await _weddingRepo.CountAsync(),
+                DayTrips = await _dayTripRepo.CountAsync(),
+                Activities = await _activityRepo.CountAsync(),
+                Events = await _eventRepo.CountAsync(),
+                Users = _userManager.Users.Count()
+            };
+
+            return Ok(stats);
+        }
     }
 }

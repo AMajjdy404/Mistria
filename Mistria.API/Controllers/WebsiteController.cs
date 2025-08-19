@@ -348,5 +348,7 @@ namespace Mistria.API.Controllers
             _logger.LogInformation("Returned {Count} weddings", result.Count);
             return Ok(result);
         }
+
+
     }
 }
