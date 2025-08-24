@@ -3,6 +3,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Mistria.API.Dtos;
 using Mistria.Domain.Interfaces;
 using Mistria.Domain.Models;
@@ -61,7 +62,7 @@ namespace Mistria.API.Controllers
             {
                 To = _configuration["MailSettings:Email"],
                 Subject = emailDto.Title ?? "New Contact Form Submission",
-                Body = $"Name: {emailDto.Name}\nEmail: {emailDto.EmailAddress}\nPhone: {emailDto.Phone}" +
+                Body = $"Name: {emailDto.Name}\nEmail: {emailDto.EmailAddress}\nPhone: {emailDto.Phone}\nNumber of People: {emailDto.NumberOfPeople}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Title) ? $"\nTitle: {emailDto.Title}" : "")}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Message) ? $"\nMessage: {emailDto.Message}" : "")}"
             };
@@ -72,22 +73,12 @@ namespace Mistria.API.Controllers
 
         #region Program
         [HttpGet("getMainProgram")]
-        public async Task<ActionResult<ReturnedProgramDto>> GetMainProgram()
+        public async Task<ActionResult<IReadOnlyList<ReturnedProgramDto>>> GetMainProgram()
         {
             _logger.LogInformation("Received GetMainProgram request");
 
-            var program = await _travelProgramRepo.GetAllAsync(p => p.IsMain == true);
-            var mainProgram = program.FirstOrDefault();
-
-            if (mainProgram == null)
-            {
-                _logger.LogWarning("No main program found");
-                return NotFound("No main program found");
-            }
-
-            var result = _mapper.Map<ReturnedProgramDto>(mainProgram);
-
-            _logger.LogInformation("Returned main program with Id: {Id}", mainProgram.Id);
+            var programs = await _travelProgramRepo.GetAllAsync(p => p.IsMain == true);
+            var result = _mapper.Map<IQueryable<TravelProgram>,IReadOnlyList<ReturnedProgramDto>>(programs);
             return Ok(result);
         }
 
@@ -240,10 +231,15 @@ namespace Mistria.API.Controllers
             _logger.LogInformation("Received GetAllDayTripCities request");
 
             var dayTrips = await _dayTripRepo.GetAllAsync();
+
             var cities = dayTrips
-                .Select(dt => dt.City)
-                .Distinct()
-                .Select(city => new CityDto { City = city })
+                .GroupBy(dt => dt.City) // نجمع بالمدينة
+                .Select(g => new CityDto
+                {
+                    City = g.Key,
+                    ImageUrl = g.FirstOrDefault()?.Images?.FirstOrDefault()
+                               ?? g.FirstOrDefault()?.CoverImage ?? ""
+                })
                 .ToList();
 
             _logger.LogInformation("Returned {Count} unique day trip cities", cities.Count);
@@ -274,14 +270,6 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetAllServices request");
 
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
-                return Unauthorized("Invalid user data");
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-                return NotFound("User not found");
-
             var services = await _serviceRepo.GetAllAsync();
             var result = _mapper.Map<List<ServiceReturnedDto>>(services);
 
@@ -293,14 +281,6 @@ namespace Mistria.API.Controllers
         public async Task<ActionResult<List<ActivityReturnedDto>>> GetAllActivities()
         {
             _logger.LogInformation("Received GetAllActivities request");
-
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
-                return Unauthorized("Invalid user data");
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-                return NotFound("User not found");
 
             var activities = await _activityRepo.GetAllAsync();
             var result = _mapper.Map<List<ActivityReturnedDto>>(activities);
@@ -314,14 +294,6 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetAllEvents request");
 
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
-                return Unauthorized("Invalid user data");
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-                return NotFound("User not found");
-
             var events = await _eventRepo.GetAllAsync();
             var result = _mapper.Map<List<EventReturnedDto>>(events);
 
@@ -333,14 +305,6 @@ namespace Mistria.API.Controllers
         public async Task<ActionResult<List<WeddingReturnedDto>>> GetAllWeddings()
         {
             _logger.LogInformation("Received GetAllWeddings request");
-
-            var email = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (string.IsNullOrEmpty(email))
-                return Unauthorized("Invalid user data");
-
-            var user = await _userManager.FindByEmailAsync(email);
-            if (user == null)
-                return NotFound("User not found");
 
             var weddings = await _weddingRepo.GetAllAsync();
             var result = _mapper.Map<List<WeddingReturnedDto>>(weddings);
