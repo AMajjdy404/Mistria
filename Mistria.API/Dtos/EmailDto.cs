@@ -14,6 +14,9 @@ namespace Mistria.API.Dtos
         [Required(ErrorMessage = "Phone number is required")]
         public string Phone { get; set; }
 
+        [Required(ErrorMessage = "Nationality is required")]
+        public string Nationality { get; set; }
+
         public string? Title { get; set; }
         public int NumberOfPeople { get; set; } = 1;
         public string? Message { get; set; }

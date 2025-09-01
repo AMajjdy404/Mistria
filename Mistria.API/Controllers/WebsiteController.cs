@@ -62,7 +62,7 @@ namespace Mistria.API.Controllers
             {
                 To = _configuration["MailSettings:Email"],
                 Subject = emailDto.Title ?? "New Contact Form Submission",
-                Body = $"Name: {emailDto.Name}\nEmail: {emailDto.EmailAddress}\nPhone: {emailDto.Phone}\nNumber of People: {emailDto.NumberOfPeople}" +
+                Body = $"Name: {emailDto.Name}\nEmail: {emailDto.EmailAddress}\nPhone: {emailDto.Phone}\nNationality: {emailDto.Nationality}\nNumber of People: {emailDto.NumberOfPeople}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Title) ? $"\nTitle: {emailDto.Title}" : "")}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Message) ? $"\nMessage: {emailDto.Message}" : "")}"
             };
