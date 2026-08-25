@@ -1,8 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
 namespace Mistria.API.Dtos
 {
-    public class DayTripDto
+    public class DestinationDto
     {
         [Required(ErrorMessage = "Title is required")]
         public string Title { get; set; }
@@ -26,7 +26,7 @@ namespace Mistria.API.Dtos
         public List<string> Included { get; set; }
 
         [Required(ErrorMessage = "Price per person is required")]
-        public decimal PricePerPerson { get; set; } 
+        public decimal PricePerPerson { get; set; }
 
         [Required(ErrorMessage = "IsMain is required")]
         public bool IsMain { get; set; }

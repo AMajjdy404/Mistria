@@ -26,11 +26,16 @@ namespace Mistria.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly IMailService _mailService;
         private readonly IGenericRepository<TravelProgram> _travelProgramRepo;
-        private readonly IGenericRepository<DayTrip> _dayTripRepo;
+        private readonly IGenericRepository<Destination> _destinationRepo;
         private readonly IGenericRepository<Wedding> _weddingRepo;
         private readonly IGenericRepository<Event> _eventRepo;
         private readonly IGenericRepository<Activity> _activityRepo;
         private readonly IGenericRepository<Service> _serviceRepo;
+        private readonly IGenericRepository<AboutUs> _aboutUsRepo;
+        private readonly IGenericRepository<Founder> _founderRepo;
+        private readonly IGenericRepository<Blog> _blogRepo;
+        private readonly IGenericRepository<BlogSub> _blogSubRepo;
+        private readonly IGenericRepository<PaymentMethod> _paymentMethodRepo;
         private readonly IMapper _mapper;
         private readonly ILogger<DashboardController> _logger;
 
@@ -40,11 +45,16 @@ namespace Mistria.API.Controllers
             IConfiguration configuration,
             IMailService mailService,
             IGenericRepository<TravelProgram> travelProgramRepo,
-            IGenericRepository<DayTrip> dayTripRepo,
+            IGenericRepository<Destination> destinationRepo,
             IGenericRepository<Wedding> weddingRepo,
             IGenericRepository<Event> eventRepo,
             IGenericRepository<Activity> activityRepo,
             IGenericRepository<Service> serviceRepo,
+            IGenericRepository<AboutUs> aboutUsRepo,
+            IGenericRepository<Founder> founderRepo,
+            IGenericRepository<Blog> blogRepo,
+            IGenericRepository<BlogSub> blogSubRepo,
+            IGenericRepository<PaymentMethod> paymentMethodRepo,
             IMapper mapper,
             ILogger<DashboardController> logger
 
@@ -56,11 +66,16 @@ namespace Mistria.API.Controllers
             _configuration = configuration;
             _mailService = mailService;
             _travelProgramRepo = travelProgramRepo;
-            _dayTripRepo = dayTripRepo;
+            _destinationRepo = destinationRepo;
             _weddingRepo = weddingRepo;
             _eventRepo = eventRepo;
             _activityRepo = activityRepo;
             _serviceRepo = serviceRepo;
+            _aboutUsRepo = aboutUsRepo;
+            _founderRepo = founderRepo;
+            _blogRepo = blogRepo;
+            _blogSubRepo = blogSubRepo;
+            _paymentMethodRepo = paymentMethodRepo;
             _mapper = mapper;
             _logger = logger;
         }
@@ -604,20 +619,20 @@ namespace Mistria.API.Controllers
         }
         #endregion
 
-        #region DayTrip
-        [HttpPost("addDayTrip")]
+        #region Destination
+        [HttpPost("addDestination")]
         [Authorize]
-        public async Task<ActionResult> AddDayTrip([FromForm] DayTripDto dayTripDto)
+        public async Task<ActionResult> AddDestination([FromForm] DestinationDto destinationDto)
         {
-            _logger.LogInformation("Received AddDayTrip request. ItineraryJson: '{Json}'", dayTripDto.ItineraryJson ?? "null");
+            _logger.LogInformation("Received AddDestination request. ItineraryJson: '{Json}'", destinationDto.ItineraryJson ?? "null");
             _logger.LogInformation("ModelState Errors: {Errors}", string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
             Dictionary<string, string> itinerary = new Dictionary<string, string>();
-            if (!string.IsNullOrWhiteSpace(dayTripDto.ItineraryJson))
+            if (!string.IsNullOrWhiteSpace(destinationDto.ItineraryJson))
             {
                 try
                 {
-                    var cleanedJson = dayTripDto.ItineraryJson.Trim();
+                    var cleanedJson = destinationDto.ItineraryJson.Trim();
                     _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
                     using var doc = JsonDocument.Parse(cleanedJson);
                     if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
@@ -645,7 +660,7 @@ namespace Mistria.API.Controllers
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, dayTripDto.ItineraryJson);
+                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, destinationDto.ItineraryJson);
                     return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
                 }
             }
@@ -679,97 +694,97 @@ namespace Mistria.API.Controllers
             var imageUrls = new List<string>();
             string cover = string.Empty;
 
-            using var transaction = await _dayTripRepo.BeginTransactionAsync();
+            using var transaction = await _destinationRepo.BeginTransactionAsync();
             try
             {
-                if (dayTripDto.CoverImage != null)
+                if (destinationDto.CoverImage != null)
                 {
-                    cover = DocumentSettings.UploadFile(dayTripDto.CoverImage, "DayTripsCover");
+                    cover = DocumentSettings.UploadFile(destinationDto.CoverImage, "DestinationsCover");
                     if (string.IsNullOrEmpty(cover))
                         return BadRequest("Failed to upload cover image");
                 }
 
-                if (dayTripDto.Images != null && dayTripDto.Images.Any())
+                if (destinationDto.Images != null && destinationDto.Images.Any())
                 {
-                    foreach (var image in dayTripDto.Images)
+                    foreach (var image in destinationDto.Images)
                     {
                         if (image?.Length > 0)
                         {
-                            var fileUrl = DocumentSettings.UploadFile(image, "DayTrips");
+                            var fileUrl = DocumentSettings.UploadFile(image, "Destinations");
                             if (!string.IsNullOrEmpty(fileUrl))
                                 imageUrls.Add(fileUrl);
                         }
                     }
-                    if (!imageUrls.Any() && dayTripDto.Images.Any())
+                    if (!imageUrls.Any() && destinationDto.Images.Any())
                         return BadRequest("Failed to upload images");
                 }
 
-                var dayTrip = new DayTrip
+                var destination = new Destination
                 {
-                    Title = dayTripDto.Title?.Trim(),
-                    Description = dayTripDto.Description?.Trim(),
-                    Location = dayTripDto.Location?.Trim(),
-                    LocationUrl = dayTripDto.LocationUrl?.Trim(),
+                    Title = destinationDto.Title?.Trim(),
+                    Description = destinationDto.Description?.Trim(),
+                    Location = destinationDto.Location?.Trim(),
+                    LocationUrl = destinationDto.LocationUrl?.Trim(),
                     Images = imageUrls,
                     CoverImage = cover,
-                    Included = dayTripDto.Included ?? new List<string>(),
-                    PricePerPerson = dayTripDto.PricePerPerson,
-                    IsMain = dayTripDto.IsMain,
+                    Included = destinationDto.Included ?? new List<string>(),
+                    PricePerPerson = destinationDto.PricePerPerson,
+                    IsMain = destinationDto.IsMain,
                     Itinerary = itinerary,
-                    City = dayTripDto.City
+                    City = destinationDto.City
                 };
 
-                await _dayTripRepo.AddAsync(dayTrip);
-                await _dayTripRepo.SaveChangesAsync();
+                await _destinationRepo.AddAsync(destination);
+                await _destinationRepo.SaveChangesAsync();
 
-                if (dayTrip.Id == 0)
+                if (destination.Id == 0)
                 {
-                    _logger.LogError("Failed to generate DayTrip Id");
-                    throw new InvalidOperationException("Failed to generate DayTrip Id");
+                    _logger.LogError("Failed to generate Destination Id");
+                    throw new InvalidOperationException("Failed to generate Destination Id");
                 }
 
-                _logger.LogInformation("DayTrip created with Id: {DayTripId}", dayTrip.Id);
+                _logger.LogInformation("Destination created with Id: {DestinationId}", destination.Id);
 
-                await _dayTripRepo.CommitAsync(transaction);
-                return Ok(new { Message = "DayTrip created successfully", DayTripId = dayTrip.Id });
+                await _destinationRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Destination created successfully", DestinationId = destination.Id });
             }
             catch (Exception ex)
             {
-                await _dayTripRepo.RollbackAsync(transaction);
+                await _destinationRepo.RollbackAsync(transaction);
 
                 if (!string.IsNullOrEmpty(cover))
-                    DocumentSettings.DeleteFile(cover, "DayTripsCover");
+                    DocumentSettings.DeleteFile(cover, "DestinationsCover");
 
                 foreach (var imageUrl in imageUrls)
                 {
-                    DocumentSettings.DeleteFile(imageUrl, "DayTrips");
+                    DocumentSettings.DeleteFile(imageUrl, "Destinations");
                 }
 
-                _logger.LogError(ex, "Failed to create day trip: {Message}", ex.Message);
-                return StatusCode(500, $"An error occurred while creating the day trip: {ex.Message}");
+                _logger.LogError(ex, "Failed to create destination: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the destination: {ex.Message}");
             }
         }
 
-        [HttpPut("updateDayTrip/{id}")]
+        [HttpPut("updateDestination/{id}")]
         [Authorize]
-        public async Task<ActionResult> UpdateDayTrip(int id, [FromForm] UpdateDayTripDto dayTripDto)
+        public async Task<ActionResult> UpdateDestination(int id, [FromForm] UpdateDestinationDto destinationDto)
         {
-            _logger.LogInformation("Received UpdateDayTrip request for Id: {Id}. ItineraryJson: '{Json}'", id, dayTripDto.ItineraryJson ?? "null");
+            _logger.LogInformation("Received UpdateDestination request for Id: {Id}. ItineraryJson: '{Json}'", id, destinationDto.ItineraryJson ?? "null");
             _logger.LogInformation("ModelState Errors: {Errors}", string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
-            var dayTrip = await _dayTripRepo.GetByIdAsync(id);
-            if (dayTrip == null)
+            var destination = await _destinationRepo.GetByIdAsync(id);
+            if (destination == null)
             {
-                _logger.LogWarning("DayTrip with Id {Id} not found", id);
-                return NotFound("DayTrip not found");
+                _logger.LogWarning("Destination with Id {Id} not found", id);
+                return NotFound("Destination not found");
             }
 
-            Dictionary<string, string> itinerary = dayTrip.Itinerary ?? new Dictionary<string, string>();
-            if (!string.IsNullOrWhiteSpace(dayTripDto.ItineraryJson))
+            Dictionary<string, string> itinerary = destination.Itinerary ?? new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(destinationDto.ItineraryJson))
             {
                 try
                 {
-                    var cleanedJson = dayTripDto.ItineraryJson.Trim();
+                    var cleanedJson = destinationDto.ItineraryJson.Trim();
                     _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
                     using var doc = JsonDocument.Parse(cleanedJson);
                     if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
@@ -797,7 +812,7 @@ namespace Mistria.API.Controllers
                 }
                 catch (JsonException ex)
                 {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, dayTripDto.ItineraryJson);
+                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, destinationDto.ItineraryJson);
                     return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
                 }
             }
@@ -817,93 +832,93 @@ namespace Mistria.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            var imageUrls = dayTrip.Images ?? new List<string>();
-            string cover = dayTrip.CoverImage ?? string.Empty;
+            var imageUrls = destination.Images ?? new List<string>();
+            string cover = destination.CoverImage ?? string.Empty;
 
-            using var transaction = await _dayTripRepo.BeginTransactionAsync();
+            using var transaction = await _destinationRepo.BeginTransactionAsync();
             try
             {
-                if (!string.IsNullOrWhiteSpace(dayTripDto.Title))
-                    dayTrip.Title = dayTripDto.Title.Trim();
-                if (!string.IsNullOrWhiteSpace(dayTripDto.Description))
-                    dayTrip.Description = dayTripDto.Description.Trim();
-                if (!string.IsNullOrWhiteSpace(dayTripDto.Location))
-                    dayTrip.Location = dayTripDto.Location.Trim();
-                if (!string.IsNullOrWhiteSpace(dayTripDto.LocationUrl))
-                    dayTrip.LocationUrl = dayTripDto.LocationUrl.Trim();
-                if (dayTripDto.PricePerPerson.HasValue)
-                    dayTrip.PricePerPerson = dayTripDto.PricePerPerson.Value;
-                if (dayTripDto.IsMain.HasValue)
-                    dayTrip.IsMain = dayTripDto.IsMain.Value;
-                if (dayTripDto.Included != null)
-                    dayTrip.Included = dayTripDto.Included;
-                if (dayTripDto.ItineraryJson != null)
-                    dayTrip.Itinerary = itinerary;
-                if (!string.IsNullOrWhiteSpace(dayTripDto.City))
-                    dayTrip.City = dayTripDto.City.Trim();
+                if (!string.IsNullOrWhiteSpace(destinationDto.Title))
+                    destination.Title = destinationDto.Title.Trim();
+                if (!string.IsNullOrWhiteSpace(destinationDto.Description))
+                    destination.Description = destinationDto.Description.Trim();
+                if (!string.IsNullOrWhiteSpace(destinationDto.Location))
+                    destination.Location = destinationDto.Location.Trim();
+                if (!string.IsNullOrWhiteSpace(destinationDto.LocationUrl))
+                    destination.LocationUrl = destinationDto.LocationUrl.Trim();
+                if (destinationDto.PricePerPerson.HasValue)
+                    destination.PricePerPerson = destinationDto.PricePerPerson.Value;
+                if (destinationDto.IsMain.HasValue)
+                    destination.IsMain = destinationDto.IsMain.Value;
+                if (destinationDto.Included != null)
+                    destination.Included = destinationDto.Included;
+                if (destinationDto.ItineraryJson != null)
+                    destination.Itinerary = itinerary;
+                if (!string.IsNullOrWhiteSpace(destinationDto.City))
+                    destination.City = destinationDto.City.Trim();
 
-                if (dayTripDto.CoverImage != null)
+                if (destinationDto.CoverImage != null)
                 {
                     if (!string.IsNullOrEmpty(cover))
-                        DocumentSettings.DeleteFile(cover, "DayTripsCover");
-                    cover = DocumentSettings.UploadFile(dayTripDto.CoverImage, "DayTripsCover");
+                        DocumentSettings.DeleteFile(cover, "DestinationsCover");
+                    cover = DocumentSettings.UploadFile(destinationDto.CoverImage, "DestinationsCover");
                     if (string.IsNullOrEmpty(cover))
                         return BadRequest("Failed to upload cover image");
                 }
 
-                if (dayTripDto.Images != null && dayTripDto.Images.Any())
+                if (destinationDto.Images != null && destinationDto.Images.Any())
                 {
-                    foreach (var imageUrl in dayTrip.Images ?? new List<string>())
+                    foreach (var imageUrl in destination.Images ?? new List<string>())
                     {
-                        DocumentSettings.DeleteFile(imageUrl, "DayTrips");
+                        DocumentSettings.DeleteFile(imageUrl, "Destinations");
                     }
                     imageUrls.Clear();
-                    foreach (var image in dayTripDto.Images)
+                    foreach (var image in destinationDto.Images)
                     {
                         if (image?.Length > 0)
                         {
-                            var fileUrl = DocumentSettings.UploadFile(image, "DayTrips");
+                            var fileUrl = DocumentSettings.UploadFile(image, "Destinations");
                             if (!string.IsNullOrEmpty(fileUrl))
                                 imageUrls.Add(fileUrl);
                         }
                     }
-                    if (!imageUrls.Any() && dayTripDto.Images.Any())
+                    if (!imageUrls.Any() && destinationDto.Images.Any())
                         return BadRequest("Failed to upload images");
                 }
 
-                dayTrip.Images = imageUrls;
-                dayTrip.CoverImage = cover;
+                destination.Images = imageUrls;
+                destination.CoverImage = cover;
 
-                _dayTripRepo.Update(dayTrip);
-                await _dayTripRepo.SaveChangesAsync();
+                _destinationRepo.Update(destination);
+                await _destinationRepo.SaveChangesAsync();
 
-                _logger.LogInformation("DayTrip updated with Id: {DayTripId}", dayTrip.Id);
+                _logger.LogInformation("Destination updated with Id: {DestinationId}", destination.Id);
 
-                await _dayTripRepo.CommitAsync(transaction);
-                return Ok(new { Message = "DayTrip updated successfully", DayTripId = dayTrip.Id });
+                await _destinationRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Destination updated successfully", DestinationId = destination.Id });
             }
             catch (Exception ex)
             {
-                await _dayTripRepo.RollbackAsync(transaction);
+                await _destinationRepo.RollbackAsync(transaction);
 
-                if (!string.IsNullOrEmpty(cover) && dayTripDto.CoverImage != null)
-                    DocumentSettings.DeleteFile(cover, "DayTripsCover");
+                if (!string.IsNullOrEmpty(cover) && destinationDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "DestinationsCover");
 
                 foreach (var imageUrl in imageUrls)
                 {
-                    DocumentSettings.DeleteFile(imageUrl, "DayTrips");
+                    DocumentSettings.DeleteFile(imageUrl, "Destinations");
                 }
 
-                _logger.LogError(ex, "Failed to update day trip: {Message}", ex.Message);
-                return StatusCode(500, $"An error occurred while updating the day trip: {ex.Message}");
+                _logger.LogError(ex, "Failed to update destination: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the destination: {ex.Message}");
             }
         }
 
-        [HttpGet("getAllDayTrips")]
+        [HttpGet("getAllDestinations")]
         [Authorize]
-        public async Task<ActionResult<List<DayTripReturnedDto>>> GetAllDayTrips()
+        public async Task<ActionResult<List<DestinationReturnedDto>>> GetAllDestinations()
         {
-            _logger.LogInformation("Received GetAllDayTrips request");
+            _logger.LogInformation("Received GetAllDestinations request");
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             if (string.IsNullOrEmpty(email))
@@ -913,18 +928,18 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var dayTrips = await _dayTripRepo.GetAllAsync();
-            var result = _mapper.Map<List<DayTripReturnedDto>>(dayTrips);
+            var destinations = await _destinationRepo.GetAllAsync();
+            var result = _mapper.Map<List<DestinationReturnedDto>>(destinations);
 
-            _logger.LogInformation("Returned {Count} day trips", result.Count);
+            _logger.LogInformation("Returned {Count} destinations", result.Count);
             return Ok(result);
         }
 
-        [HttpGet("getDayTripById/{id}")]
+        [HttpGet("getDestinationById/{id}")]
         [Authorize]
-        public async Task<ActionResult<DayTripReturnedDto>> GetDayTripById(int id)
+        public async Task<ActionResult<DestinationReturnedDto>> GetDestinationById(int id)
         {
-            _logger.LogInformation("Received GetDayTripById request for Id: {Id}", id);
+            _logger.LogInformation("Received GetDestinationById request for Id: {Id}", id);
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             if (string.IsNullOrEmpty(email))
@@ -934,30 +949,30 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var dayTrip = await _dayTripRepo.GetByIdAsync(id);
-            if (dayTrip == null)
+            var destination = await _destinationRepo.GetByIdAsync(id);
+            if (destination == null)
             {
-                _logger.LogWarning("DayTrip with Id {Id} not found", id);
-                return NotFound("DayTrip not found");
+                _logger.LogWarning("Destination with Id {Id} not found", id);
+                return NotFound("Destination not found");
             }
 
-            var result = _mapper.Map<DayTripReturnedDto>(dayTrip);
+            var result = _mapper.Map<DestinationReturnedDto>(destination);
 
-            _logger.LogInformation("Returned day trip with Id: {Id}", id);
+            _logger.LogInformation("Returned destination with Id: {Id}", id);
             return Ok(result);
         }
 
-        [HttpDelete("deleteDayTrip/{id}")]
+        [HttpDelete("deleteDestination/{id}")]
         [Authorize]
-        public async Task<ActionResult> DeleteDayTrip(int id)
+        public async Task<ActionResult> DeleteDestination(int id)
         {
-            _logger.LogInformation("Received DeleteDayTrip request for Id: {Id}", id);
+            _logger.LogInformation("Received DeleteDestination request for Id: {Id}", id);
 
-            var dayTrip = await _dayTripRepo.GetByIdAsync(id);
-            if (dayTrip == null)
+            var destination = await _destinationRepo.GetByIdAsync(id);
+            if (destination == null)
             {
-                _logger.LogWarning("DayTrip with Id {Id} not found", id);
-                return NotFound("DayTrip not found");
+                _logger.LogWarning("Destination with Id {Id} not found", id);
+                return NotFound("Destination not found");
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -968,30 +983,30 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            using var transaction = await _dayTripRepo.BeginTransactionAsync();
+            using var transaction = await _destinationRepo.BeginTransactionAsync();
             try
             {
-                if (!string.IsNullOrEmpty(dayTrip.CoverImage))
-                    DocumentSettings.DeleteFile(dayTrip.CoverImage, "DayTripsCover");
+                if (!string.IsNullOrEmpty(destination.CoverImage))
+                    DocumentSettings.DeleteFile(destination.CoverImage, "DestinationsCover");
 
-                foreach (var imageUrl in dayTrip.Images ?? new List<string>())
+                foreach (var imageUrl in destination.Images ?? new List<string>())
                 {
-                    DocumentSettings.DeleteFile(imageUrl, "DayTrips");
+                    DocumentSettings.DeleteFile(imageUrl, "Destinations");
                 }
 
-                _dayTripRepo.Delete(dayTrip);
-                await _dayTripRepo.SaveChangesAsync();
+                _destinationRepo.Delete(destination);
+                await _destinationRepo.SaveChangesAsync();
 
-                _logger.LogInformation("DayTrip deleted with Id: {DayTripId}", dayTrip.Id);
+                _logger.LogInformation("Destination deleted with Id: {DestinationId}", destination.Id);
 
-                await _dayTripRepo.CommitAsync(transaction);
-                return Ok(new { Message = "DayTrip deleted successfully", DayTripId = dayTrip.Id });
+                await _destinationRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Destination deleted successfully", DestinationId = destination.Id });
             }
             catch (Exception ex)
             {
-                await _dayTripRepo.RollbackAsync(transaction);
-                _logger.LogError(ex, "Failed to delete day trip: {Message}", ex.Message);
-                return StatusCode(500, $"An error occurred while deleting the day trip: {ex.Message}");
+                await _destinationRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete destination: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the destination: {ex.Message}");
             }
         }
         #endregion
@@ -1924,6 +1939,1049 @@ namespace Mistria.API.Controllers
 
         #endregion
 
+        #region AboutUs
+
+        [HttpPost("addOrUpdateAboutUs")]
+        [Authorize]
+        public async Task<ActionResult> AddOrUpdateAboutUs([FromBody] AboutUsDto aboutUsDto)
+        {
+            _logger.LogInformation("Received AddOrUpdateAboutUs request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            using var transaction = await _aboutUsRepo.BeginTransactionAsync();
+            try
+            {
+                var aboutUs = (await _aboutUsRepo.GetAllAsync()).FirstOrDefault();
+
+                if (aboutUs == null)
+                {
+                    aboutUs = new AboutUs
+                    {
+                        MainDescription = aboutUsDto.MainDescription.Trim(),
+                        OurStory = aboutUsDto.OurStory.Trim()
+                    };
+                    await _aboutUsRepo.AddAsync(aboutUs);
+                }
+                else
+                {
+                    aboutUs.MainDescription = aboutUsDto.MainDescription.Trim();
+                    aboutUs.OurStory = aboutUsDto.OurStory.Trim();
+                    _aboutUsRepo.Update(aboutUs);
+                }
+
+                await _aboutUsRepo.SaveChangesAsync();
+
+                _logger.LogInformation("AboutUs saved with Id: {AboutUsId}", aboutUs.Id);
+
+                await _aboutUsRepo.CommitAsync(transaction);
+                return Ok(new { Message = "About us saved successfully", AboutUsId = aboutUs.Id });
+            }
+            catch (Exception ex)
+            {
+                await _aboutUsRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to save about us: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while saving about us: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAboutUs")]
+        [Authorize]
+        public async Task<ActionResult<AboutUsReturnedDto>> GetAboutUs()
+        {
+            _logger.LogInformation("Received GetAboutUs request");
+
+            var aboutUs = (await _aboutUsRepo.GetAllAsync()).FirstOrDefault();
+            if (aboutUs == null)
+                return NotFound("About us has not been set up yet");
+
+            var result = _mapper.Map<AboutUsReturnedDto>(aboutUs);
+            return Ok(result);
+        }
+
+        #region Founders
+
+        [HttpPost("addFounder")]
+        [Authorize]
+        public async Task<ActionResult> AddFounder([FromForm] FounderDto founderDto)
+        {
+            _logger.LogInformation("Received AddFounder request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = string.Empty;
+
+            using var transaction = await _founderRepo.BeginTransactionAsync();
+            try
+            {
+                if (founderDto.CoverImage != null)
+                {
+                    cover = DocumentSettings.UploadFile(founderDto.CoverImage, "FoundersCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                var founder = new Founder
+                {
+                    Title = founderDto.Title?.Trim(),
+                    Description = founderDto.Description?.Trim(),
+                    CoverImage = cover
+                };
+
+                await _founderRepo.AddAsync(founder);
+                await _founderRepo.SaveChangesAsync();
+
+                if (founder.Id == 0)
+                {
+                    _logger.LogError("Failed to generate Founder Id");
+                    throw new InvalidOperationException("Failed to generate Founder Id");
+                }
+
+                _logger.LogInformation("Founder created with Id: {FounderId}", founder.Id);
+
+                await _founderRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Founder created successfully", FounderId = founder.Id });
+            }
+            catch (Exception ex)
+            {
+                await _founderRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "FoundersCover");
+
+                _logger.LogError(ex, "Failed to create founder: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the founder: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateFounder/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateFounder(int id, [FromForm] UpdateFounderDto founderDto)
+        {
+            _logger.LogInformation("Received UpdateFounder request for Id: {Id}", id);
+
+            var founder = await _founderRepo.GetByIdAsync(id);
+            if (founder == null)
+            {
+                _logger.LogWarning("Founder with Id {Id} not found", id);
+                return NotFound("Founder not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = founder.CoverImage ?? string.Empty;
+
+            using var transaction = await _founderRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(founderDto.Title))
+                    founder.Title = founderDto.Title.Trim();
+                if (!string.IsNullOrWhiteSpace(founderDto.Description))
+                    founder.Description = founderDto.Description.Trim();
+
+                if (founderDto.CoverImage != null)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "FoundersCover");
+                    cover = DocumentSettings.UploadFile(founderDto.CoverImage, "FoundersCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                founder.CoverImage = cover;
+
+                _founderRepo.Update(founder);
+                await _founderRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Founder updated with Id: {FounderId}", founder.Id);
+
+                await _founderRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Founder updated successfully", FounderId = founder.Id });
+            }
+            catch (Exception ex)
+            {
+                await _founderRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover) && founderDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "FoundersCover");
+
+                _logger.LogError(ex, "Failed to update founder: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the founder: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllFounders")]
+        [Authorize]
+        public async Task<ActionResult<List<FounderReturnedDto>>> GetAllFounders()
+        {
+            _logger.LogInformation("Received GetAllFounders request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var founders = await _founderRepo.GetAllAsync();
+            var result = _mapper.Map<List<FounderReturnedDto>>(founders);
+
+            _logger.LogInformation("Returned {Count} founders", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getFounderById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<FounderReturnedDto>> GetFounderById(int id)
+        {
+            _logger.LogInformation("Received GetFounderById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var founder = await _founderRepo.GetByIdAsync(id);
+            if (founder == null)
+            {
+                _logger.LogWarning("Founder with Id {Id} not found", id);
+                return NotFound("Founder not found");
+            }
+
+            var result = _mapper.Map<FounderReturnedDto>(founder);
+
+            _logger.LogInformation("Returned founder with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteFounder/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteFounder(int id)
+        {
+            _logger.LogInformation("Received DeleteFounder request for Id: {Id}", id);
+
+            var founder = await _founderRepo.GetByIdAsync(id);
+            if (founder == null)
+            {
+                _logger.LogWarning("Founder with Id {Id} not found", id);
+                return NotFound("Founder not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _founderRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(founder.CoverImage))
+                    DocumentSettings.DeleteFile(founder.CoverImage, "FoundersCover");
+
+                _founderRepo.Delete(founder);
+                await _founderRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Founder deleted with Id: {FounderId}", founder.Id);
+
+                await _founderRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Founder deleted successfully", FounderId = founder.Id });
+            }
+            catch (Exception ex)
+            {
+                await _founderRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete founder: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the founder: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region Blog
+
+        [HttpPost("addBlog")]
+        [Authorize]
+        public async Task<ActionResult> AddBlog([FromForm] BlogDto blogDto)
+        {
+            _logger.LogInformation("Received AddBlog request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = string.Empty;
+
+            using var transaction = await _blogRepo.BeginTransactionAsync();
+            try
+            {
+                if (blogDto.CoverImage != null)
+                {
+                    cover = DocumentSettings.UploadFile(blogDto.CoverImage, "BlogsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                var blog = new Blog
+                {
+                    Title = blogDto.Title?.Trim(),
+                    Description = blogDto.Description?.Trim(),
+                    CoverImage = cover
+                };
+
+                await _blogRepo.AddAsync(blog);
+                await _blogRepo.SaveChangesAsync();
+
+                if (blog.Id == 0)
+                {
+                    _logger.LogError("Failed to generate Blog Id");
+                    throw new InvalidOperationException("Failed to generate Blog Id");
+                }
+
+                _logger.LogInformation("Blog created with Id: {BlogId}", blog.Id);
+
+                await _blogRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog created successfully", BlogId = blog.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "BlogsCover");
+
+                _logger.LogError(ex, "Failed to create blog: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the blog: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateBlog/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateBlog(int id, [FromForm] UpdateBlogDto blogDto)
+        {
+            _logger.LogInformation("Received UpdateBlog request for Id: {Id}", id);
+
+            var blog = await _blogRepo.GetByIdAsync(id);
+            if (blog == null)
+            {
+                _logger.LogWarning("Blog with Id {Id} not found", id);
+                return NotFound("Blog not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = blog.CoverImage ?? string.Empty;
+
+            using var transaction = await _blogRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(blogDto.Title))
+                    blog.Title = blogDto.Title.Trim();
+                if (!string.IsNullOrWhiteSpace(blogDto.Description))
+                    blog.Description = blogDto.Description.Trim();
+
+                if (blogDto.CoverImage != null)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "BlogsCover");
+                    cover = DocumentSettings.UploadFile(blogDto.CoverImage, "BlogsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                blog.CoverImage = cover;
+
+                _blogRepo.Update(blog);
+                await _blogRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Blog updated with Id: {BlogId}", blog.Id);
+
+                await _blogRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog updated successfully", BlogId = blog.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover) && blogDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "BlogsCover");
+
+                _logger.LogError(ex, "Failed to update blog: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the blog: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllBlogs")]
+        [Authorize]
+        public async Task<ActionResult<List<BlogReturnedDto>>> GetAllBlogs()
+        {
+            _logger.LogInformation("Received GetAllBlogs request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var blogs = await _blogRepo.GetAllAsync();
+            var result = _mapper.Map<List<BlogReturnedDto>>(blogs);
+
+            _logger.LogInformation("Returned {Count} blogs", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getBlogById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<BlogReturnedDto>> GetBlogById(int id)
+        {
+            _logger.LogInformation("Received GetBlogById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var blog = await _blogRepo.GetByIdAsync(id);
+            if (blog == null)
+            {
+                _logger.LogWarning("Blog with Id {Id} not found", id);
+                return NotFound("Blog not found");
+            }
+
+            var result = _mapper.Map<BlogReturnedDto>(blog);
+
+            _logger.LogInformation("Returned blog with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteBlog/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteBlog(int id)
+        {
+            _logger.LogInformation("Received DeleteBlog request for Id: {Id}", id);
+
+            var blog = await _blogRepo.GetByIdAsync(id);
+            if (blog == null)
+            {
+                _logger.LogWarning("Blog with Id {Id} not found", id);
+                return NotFound("Blog not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _blogRepo.BeginTransactionAsync();
+            try
+            {
+                var subs = await _blogSubRepo.GetAllAsync(s => s.BlogId == id);
+                foreach (var sub in subs)
+                {
+                    if (!string.IsNullOrEmpty(sub.CoverImage))
+                        DocumentSettings.DeleteFile(sub.CoverImage, "BlogSubsCover");
+
+                    _blogSubRepo.Delete(sub);
+                }
+                await _blogSubRepo.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(blog.CoverImage))
+                    DocumentSettings.DeleteFile(blog.CoverImage, "BlogsCover");
+
+                _blogRepo.Delete(blog);
+                await _blogRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Blog deleted with Id: {BlogId}", blog.Id);
+
+                await _blogRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog deleted successfully", BlogId = blog.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete blog: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the blog: {ex.Message}");
+            }
+        }
+
+        #region BlogSub
+
+        [HttpPost("addBlogSub")]
+        [Authorize]
+        public async Task<ActionResult> AddBlogSub([FromForm] BlogSubDto blogSubDto)
+        {
+            _logger.LogInformation("Received AddBlogSub request. ContentJson: '{Json}'", blogSubDto.ContentJson ?? "null");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            var blog = await _blogRepo.GetByIdAsync(blogSubDto.BlogId);
+            if (blog == null)
+                return NotFound("Blog not found");
+
+            if (string.IsNullOrWhiteSpace(blogSubDto.ContentJson))
+                return BadRequest("Content JSON is required");
+
+            Dictionary<string, string> content;
+            try
+            {
+                var cleanedJson = blogSubDto.ContentJson.Trim();
+                using var doc = JsonDocument.Parse(cleanedJson);
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                    return BadRequest("Content JSON must be an object (e.g., {\"key\": \"value\"})");
+
+                content = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize content JSON: {Message} | Raw JSON: {Json}", ex.Message, blogSubDto.ContentJson);
+                return BadRequest("Invalid content JSON format. Use {\"key\": \"value\", \"key2\": \"value2\"}");
+            }
+
+            if (content.Count == 0)
+                return BadRequest("Content is required and cannot be empty");
+
+            string cover = string.Empty;
+
+            using var transaction = await _blogSubRepo.BeginTransactionAsync();
+            try
+            {
+                if (blogSubDto.CoverImage != null)
+                {
+                    cover = DocumentSettings.UploadFile(blogSubDto.CoverImage, "BlogSubsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                var blogSub = new BlogSub
+                {
+                    BlogId = blogSubDto.BlogId,
+                    Title = blogSubDto.Title?.Trim(),
+                    CoverImage = cover,
+                    Content = content
+                };
+
+                await _blogSubRepo.AddAsync(blogSub);
+                await _blogSubRepo.SaveChangesAsync();
+
+                if (blogSub.Id == 0)
+                {
+                    _logger.LogError("Failed to generate BlogSub Id");
+                    throw new InvalidOperationException("Failed to generate BlogSub Id");
+                }
+
+                _logger.LogInformation("BlogSub created with Id: {BlogSubId}", blogSub.Id);
+
+                await _blogSubRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog sub created successfully", BlogSubId = blogSub.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogSubRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "BlogSubsCover");
+
+                _logger.LogError(ex, "Failed to create blog sub: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the blog sub: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateBlogSub/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateBlogSub(int id, [FromForm] UpdateBlogSubDto blogSubDto)
+        {
+            _logger.LogInformation("Received UpdateBlogSub request for Id: {Id}. ContentJson: '{Json}'", id, blogSubDto.ContentJson ?? "null");
+
+            var blogSub = await _blogSubRepo.GetByIdAsync(id);
+            if (blogSub == null)
+            {
+                _logger.LogWarning("BlogSub with Id {Id} not found", id);
+                return NotFound("Blog sub not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            var content = blogSub.Content ?? new Dictionary<string, string>();
+            if (!string.IsNullOrWhiteSpace(blogSubDto.ContentJson))
+            {
+                try
+                {
+                    var cleanedJson = blogSubDto.ContentJson.Trim();
+                    using var doc = JsonDocument.Parse(cleanedJson);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
+                    {
+                        var firstObject = doc.RootElement[0];
+                        if (firstObject.ValueKind == JsonValueKind.Object)
+                        {
+                            content = JsonSerializer.Deserialize<Dictionary<string, string>>(firstObject.GetRawText()) ?? new Dictionary<string, string>();
+                        }
+                        else
+                        {
+                            return BadRequest("Content JSON array must contain at least one object (e.g., [{\"key\": \"value\"}])");
+                        }
+                    }
+                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                    {
+                        content = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
+                    }
+                    else
+                    {
+                        return BadRequest("Content JSON must be an object or array of objects (e.g., {\"key\": \"value\"} or [{\"key\": \"value\"}])");
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize content JSON: {Message} | Raw JSON: {Json}", ex.Message, blogSubDto.ContentJson);
+                    return BadRequest("Invalid content JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
+                }
+            }
+
+            string cover = blogSub.CoverImage ?? string.Empty;
+
+            using var transaction = await _blogSubRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(blogSubDto.Title))
+                    blogSub.Title = blogSubDto.Title.Trim();
+                if (blogSubDto.ContentJson != null)
+                    blogSub.Content = content;
+
+                if (blogSubDto.CoverImage != null)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "BlogSubsCover");
+                    cover = DocumentSettings.UploadFile(blogSubDto.CoverImage, "BlogSubsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                blogSub.CoverImage = cover;
+
+                _blogSubRepo.Update(blogSub);
+                await _blogSubRepo.SaveChangesAsync();
+
+                _logger.LogInformation("BlogSub updated with Id: {BlogSubId}", blogSub.Id);
+
+                await _blogSubRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog sub updated successfully", BlogSubId = blogSub.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogSubRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover) && blogSubDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "BlogSubsCover");
+
+                _logger.LogError(ex, "Failed to update blog sub: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the blog sub: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllBlogSubs")]
+        [Authorize]
+        public async Task<ActionResult<List<BlogSubReturnedDto>>> GetAllBlogSubs()
+        {
+            _logger.LogInformation("Received GetAllBlogSubs request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var blogSubs = await _blogSubRepo.GetAllAsync();
+            var result = _mapper.Map<List<BlogSubReturnedDto>>(blogSubs);
+
+            _logger.LogInformation("Returned {Count} blog subs", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getBlogSubById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<BlogSubReturnedDto>> GetBlogSubById(int id)
+        {
+            _logger.LogInformation("Received GetBlogSubById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var blogSub = await _blogSubRepo.GetByIdAsync(id);
+            if (blogSub == null)
+            {
+                _logger.LogWarning("BlogSub with Id {Id} not found", id);
+                return NotFound("Blog sub not found");
+            }
+
+            var result = _mapper.Map<BlogSubReturnedDto>(blogSub);
+
+            _logger.LogInformation("Returned blog sub with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpGet("getBlogSubsByBlogId/{blogId}")]
+        [Authorize]
+        public async Task<ActionResult<List<BlogSubReturnedDto>>> GetBlogSubsByBlogId(int blogId)
+        {
+            _logger.LogInformation("Received GetBlogSubsByBlogId request for BlogId: {BlogId}", blogId);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var blog = await _blogRepo.GetByIdAsync(blogId);
+            if (blog == null)
+                return NotFound("Blog not found");
+
+            var blogSubs = await _blogSubRepo.GetAllAsync(s => s.BlogId == blogId);
+            var result = _mapper.Map<List<BlogSubReturnedDto>>(blogSubs);
+
+            _logger.LogInformation("Returned {Count} blog subs for BlogId: {BlogId}", result.Count, blogId);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteBlogSub/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteBlogSub(int id)
+        {
+            _logger.LogInformation("Received DeleteBlogSub request for Id: {Id}", id);
+
+            var blogSub = await _blogSubRepo.GetByIdAsync(id);
+            if (blogSub == null)
+            {
+                _logger.LogWarning("BlogSub with Id {Id} not found", id);
+                return NotFound("Blog sub not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _blogSubRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(blogSub.CoverImage))
+                    DocumentSettings.DeleteFile(blogSub.CoverImage, "BlogSubsCover");
+
+                _blogSubRepo.Delete(blogSub);
+                await _blogSubRepo.SaveChangesAsync();
+
+                _logger.LogInformation("BlogSub deleted with Id: {BlogSubId}", blogSub.Id);
+
+                await _blogSubRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog sub deleted successfully", BlogSubId = blogSub.Id });
+            }
+            catch (Exception ex)
+            {
+                await _blogSubRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete blog sub: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the blog sub: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #endregion
+
+        #region PaymentMethod
+
+        [HttpPost("addPaymentMethod")]
+        [Authorize]
+        public async Task<ActionResult> AddPaymentMethod([FromBody] PaymentMethodDto paymentMethodDto)
+        {
+            _logger.LogInformation("Received AddPaymentMethod request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            using var transaction = await _paymentMethodRepo.BeginTransactionAsync();
+            try
+            {
+                var paymentMethod = new PaymentMethod
+                {
+                    Name = paymentMethodDto.Name.Trim()
+                };
+
+                await _paymentMethodRepo.AddAsync(paymentMethod);
+                await _paymentMethodRepo.SaveChangesAsync();
+
+                if (paymentMethod.Id == 0)
+                {
+                    _logger.LogError("Failed to generate PaymentMethod Id");
+                    throw new InvalidOperationException("Failed to generate PaymentMethod Id");
+                }
+
+                _logger.LogInformation("PaymentMethod created with Id: {PaymentMethodId}", paymentMethod.Id);
+
+                await _paymentMethodRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Payment method created successfully", PaymentMethodId = paymentMethod.Id });
+            }
+            catch (Exception ex)
+            {
+                await _paymentMethodRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to create payment method: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the payment method: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updatePaymentMethod/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdatePaymentMethod(int id, [FromBody] UpdatePaymentMethodDto paymentMethodDto)
+        {
+            _logger.LogInformation("Received UpdatePaymentMethod request for Id: {Id}", id);
+
+            var paymentMethod = await _paymentMethodRepo.GetByIdAsync(id);
+            if (paymentMethod == null)
+            {
+                _logger.LogWarning("PaymentMethod with Id {Id} not found", id);
+                return NotFound("Payment method not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            using var transaction = await _paymentMethodRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(paymentMethodDto.Name))
+                    paymentMethod.Name = paymentMethodDto.Name.Trim();
+
+                _paymentMethodRepo.Update(paymentMethod);
+                await _paymentMethodRepo.SaveChangesAsync();
+
+                _logger.LogInformation("PaymentMethod updated with Id: {PaymentMethodId}", paymentMethod.Id);
+
+                await _paymentMethodRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Payment method updated successfully", PaymentMethodId = paymentMethod.Id });
+            }
+            catch (Exception ex)
+            {
+                await _paymentMethodRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to update payment method: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the payment method: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllPaymentMethods")]
+        [Authorize]
+        public async Task<ActionResult<List<PaymentMethodReturnedDto>>> GetAllPaymentMethods()
+        {
+            _logger.LogInformation("Received GetAllPaymentMethods request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var paymentMethods = await _paymentMethodRepo.GetAllAsync();
+            var result = _mapper.Map<List<PaymentMethodReturnedDto>>(paymentMethods);
+
+            _logger.LogInformation("Returned {Count} payment methods", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getPaymentMethodById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<PaymentMethodReturnedDto>> GetPaymentMethodById(int id)
+        {
+            _logger.LogInformation("Received GetPaymentMethodById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var paymentMethod = await _paymentMethodRepo.GetByIdAsync(id);
+            if (paymentMethod == null)
+            {
+                _logger.LogWarning("PaymentMethod with Id {Id} not found", id);
+                return NotFound("Payment method not found");
+            }
+
+            var result = _mapper.Map<PaymentMethodReturnedDto>(paymentMethod);
+
+            _logger.LogInformation("Returned payment method with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deletePaymentMethod/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeletePaymentMethod(int id)
+        {
+            _logger.LogInformation("Received DeletePaymentMethod request for Id: {Id}", id);
+
+            var paymentMethod = await _paymentMethodRepo.GetByIdAsync(id);
+            if (paymentMethod == null)
+            {
+                _logger.LogWarning("PaymentMethod with Id {Id} not found", id);
+                return NotFound("Payment method not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _paymentMethodRepo.BeginTransactionAsync();
+            try
+            {
+                _paymentMethodRepo.Delete(paymentMethod);
+                await _paymentMethodRepo.SaveChangesAsync();
+
+                _logger.LogInformation("PaymentMethod deleted with Id: {PaymentMethodId}", paymentMethod.Id);
+
+                await _paymentMethodRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Payment method deleted successfully", PaymentMethodId = paymentMethod.Id });
+            }
+            catch (Exception ex)
+            {
+                await _paymentMethodRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete payment method: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the payment method: {ex.Message}");
+            }
+        }
+
+        #endregion
+
         [HttpGet("statistics")]
         public async Task<IActionResult> GetStatistics()
         {
@@ -1932,7 +2990,7 @@ namespace Mistria.API.Controllers
                 TravelPrograms = await _travelProgramRepo.CountAsync(),
                 Services = await _serviceRepo.CountAsync(),
                 Weddings = await _weddingRepo.CountAsync(),
-                DayTrips = await _dayTripRepo.CountAsync(),
+                Destinations = await _destinationRepo.CountAsync(),
                 Activities = await _activityRepo.CountAsync(),
                 Events = await _eventRepo.CountAsync(),
                 Users = _userManager.Users.Count()

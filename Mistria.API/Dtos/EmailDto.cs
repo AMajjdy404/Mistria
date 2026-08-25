@@ -20,5 +20,6 @@ namespace Mistria.API.Dtos
         public string? Title { get; set; }
         public int NumberOfPeople { get; set; } = 1;
         public string? Message { get; set; }
+        public string? PaymentMethod { get; set; }
     }
 }

@@ -1,19 +1,19 @@
-﻿using AutoMapper;
+using AutoMapper;
 using Mistria.API.Dtos;
 using Mistria.Domain.Models;
 
 namespace Mistria.API.Helpers
 {
-    public class DayTripImagesUrlResolver : IValueResolver<DayTrip, DayTripReturnedDto, List<string>>
+    public class DestinationImagesUrlResolver : IValueResolver<Destination, DestinationReturnedDto, List<string>>
     {
         private readonly IConfiguration _configuration;
 
-        public DayTripImagesUrlResolver(IConfiguration configuration)
+        public DestinationImagesUrlResolver(IConfiguration configuration)
         {
             _configuration = configuration;
         }
 
-        public List<string> Resolve(DayTrip source, DayTripReturnedDto destination, List<string> destMember, ResolutionContext context)
+        public List<string> Resolve(Destination source, DestinationReturnedDto destination, List<string> destMember, ResolutionContext context)
         {
             if (source.Images == null || !source.Images.Any())
                 return new List<string>();

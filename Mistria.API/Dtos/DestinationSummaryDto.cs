@@ -1,6 +1,6 @@
-﻿namespace Mistria.API.Dtos
+namespace Mistria.API.Dtos
 {
-    public class DayTripSummaryDto
+    public class DestinationSummaryDto
     {
         public int Id { get; set; }
         public string Title { get; set; }

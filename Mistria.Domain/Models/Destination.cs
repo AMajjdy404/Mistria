@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Mistria.Domain.Models
 {
-    public class DayTrip
+    public class Destination
     {
         public int Id { get; set; }
 
@@ -30,7 +30,7 @@ namespace Mistria.Domain.Models
         public List<string> Included { get; set; }
 
         [Required]
-        public decimal PricePerPerson { get; set; } 
+        public decimal PricePerPerson { get; set; }
 
         [Required]
         public bool IsMain { get; set; }

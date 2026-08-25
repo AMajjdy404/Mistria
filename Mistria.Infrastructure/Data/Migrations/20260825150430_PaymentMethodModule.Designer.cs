@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Mistria.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using Mistria.Infrastructure.Data;
 namespace Mistria.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TravelDbContext))]
-    partial class TravelDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260825150430_PaymentMethodModule")]
+    partial class PaymentMethodModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -323,7 +326,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("BlogSubs");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Destination", b =>
+            modelBuilder.Entity("Mistria.Domain.Models.DayTrip", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -376,7 +379,7 @@ namespace Mistria.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Destinations");
+                    b.ToTable("DayTrips");
                 });
 
             modelBuilder.Entity("Mistria.Domain.Models.Event", b =>

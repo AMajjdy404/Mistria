@@ -6,6 +6,7 @@
         {
             //1. File Location Path
             var folderPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/Images", folderName);
+            Directory.CreateDirectory(folderPath);
 
             //2. Get File Name and make it Unique
             var fileName = $"{Guid.NewGuid()}-{Path.GetFileName(file.FileName)}";

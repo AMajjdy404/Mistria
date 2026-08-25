@@ -19,11 +19,16 @@ namespace Mistria.API.Controllers
         private readonly IConfiguration _configuration;
         private readonly UserManager<AppUser> _userManager;
         private readonly IGenericRepository<TravelProgram> _travelProgramRepo;
-        private readonly IGenericRepository<DayTrip> _dayTripRepo;
+        private readonly IGenericRepository<Destination> _destinationRepo;
         private readonly IGenericRepository<Activity> _activityRepo;
         private readonly IGenericRepository<Event> _eventRepo;
         private readonly IGenericRepository<Service> _serviceRepo;
         private readonly IGenericRepository<Wedding> _weddingRepo;
+        private readonly IGenericRepository<AboutUs> _aboutUsRepo;
+        private readonly IGenericRepository<Founder> _founderRepo;
+        private readonly IGenericRepository<Blog> _blogRepo;
+        private readonly IGenericRepository<BlogSub> _blogSubRepo;
+        private readonly IGenericRepository<PaymentMethod> _paymentMethodRepo;
         private readonly ILogger<DashboardController> _logger;
         private readonly IMapper _mapper;
 
@@ -31,11 +36,16 @@ namespace Mistria.API.Controllers
             IConfiguration configuration,
             UserManager<AppUser> userManager,
             IGenericRepository<TravelProgram> travelProgramRepo,
-            IGenericRepository<DayTrip> dayTripRepo,
+            IGenericRepository<Destination> destinationRepo,
             IGenericRepository<Wedding> weddingRepo,
             IGenericRepository<Activity> activityRepo,
             IGenericRepository<Event> eventRepo,
             IGenericRepository<Service> serviceRepo,
+            IGenericRepository<AboutUs> aboutUsRepo,
+            IGenericRepository<Founder> founderRepo,
+            IGenericRepository<Blog> blogRepo,
+            IGenericRepository<BlogSub> blogSubRepo,
+            IGenericRepository<PaymentMethod> paymentMethodRepo,
             ILogger<DashboardController> logger,
             IMapper mapper)
         {
@@ -43,11 +53,16 @@ namespace Mistria.API.Controllers
             _configuration = configuration;
             _userManager = userManager;
             _travelProgramRepo = travelProgramRepo;
-            _dayTripRepo = dayTripRepo;
+            _destinationRepo = destinationRepo;
             _activityRepo = activityRepo;
             _eventRepo = eventRepo;
             _serviceRepo = serviceRepo;
             _weddingRepo = weddingRepo;
+            _aboutUsRepo = aboutUsRepo;
+            _founderRepo = founderRepo;
+            _blogRepo = blogRepo;
+            _blogSubRepo = blogSubRepo;
+            _paymentMethodRepo = paymentMethodRepo;
             _logger = logger;
             _mapper = mapper;
         }
@@ -64,6 +79,7 @@ namespace Mistria.API.Controllers
                 Subject = emailDto.Title ?? "New Contact Form Submission",
                 Body = $"Name: {emailDto.Name}\nEmail: {emailDto.EmailAddress}\nPhone: {emailDto.Phone}\nNationality: {emailDto.Nationality}\nNumber of People: {emailDto.NumberOfPeople}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Title) ? $"\nTitle: {emailDto.Title}" : "")}" +
+                       $"{(!string.IsNullOrEmpty(emailDto.PaymentMethod) ? $"\nPayment Method: {emailDto.PaymentMethod}" : "")}" +
                        $"{(!string.IsNullOrEmpty(emailDto.Message) ? $"\nMessage: {emailDto.Message}" : "")}"
             };
 
@@ -154,85 +170,85 @@ namespace Mistria.API.Controllers
         }
         #endregion
 
-        #region DayTrip
+        #region Destination
 
-        [HttpGet("getAllDayTrips")]
-        public async Task<ActionResult<List<DayTripReturnedDto>>> GetAllDayTrips()
+        [HttpGet("getAllDestinations")]
+        public async Task<ActionResult<List<DestinationReturnedDto>>> GetAllDestinations()
         {
-            _logger.LogInformation("Received GetAllDayTrips request");
+            _logger.LogInformation("Received GetAllDestinations request");
 
-            var dayTrips = await _dayTripRepo.GetAllAsync();
-            var result = _mapper.Map<List<DayTripReturnedDto>>(dayTrips);
+            var destinations = await _destinationRepo.GetAllAsync();
+            var result = _mapper.Map<List<DestinationReturnedDto>>(destinations);
 
-            _logger.LogInformation("Returned {Count} day trips", result.Count);
+            _logger.LogInformation("Returned {Count} destinations", result.Count);
             return Ok(result);
         }
 
-        [HttpGet("getDayTripSummaries")]
-        public async Task<ActionResult<List<DayTripSummaryDto>>> GetDayTripSummaries()
+        [HttpGet("getDestinationSummaries")]
+        public async Task<ActionResult<List<DestinationSummaryDto>>> GetDestinationSummaries()
         {
-            _logger.LogInformation("Received GetDayTripSummaries request");
+            _logger.LogInformation("Received GetDestinationSummaries request");
 
-            var dayTrips = await _dayTripRepo.GetAllAsync();
-            var result = _mapper.Map<List<DayTripSummaryDto>>(dayTrips);
+            var destinations = await _destinationRepo.GetAllAsync();
+            var result = _mapper.Map<List<DestinationSummaryDto>>(destinations);
 
-            _logger.LogInformation("Returned {Count} day trip summaries", result.Count);
+            _logger.LogInformation("Returned {Count} destination summaries", result.Count);
             return Ok(result);
         }
 
-        [HttpGet("getDayTripById/{id}")]
-        public async Task<ActionResult<DayTripReturnedDto>> GetDayTripById(int id)
+        [HttpGet("getDestinationById/{id}")]
+        public async Task<ActionResult<DestinationReturnedDto>> GetDestinationById(int id)
         {
-            _logger.LogInformation("Received GetDayTripById request for Id: {Id}", id);
+            _logger.LogInformation("Received GetDestinationById request for Id: {Id}", id);
 
-            var dayTrip = await _dayTripRepo.GetByIdAsync(id);
-            if (dayTrip == null)
+            var destination = await _destinationRepo.GetByIdAsync(id);
+            if (destination == null)
             {
-                _logger.LogWarning("DayTrip with Id {Id} not found", id);
-                return NotFound("DayTrip not found");
+                _logger.LogWarning("Destination with Id {Id} not found", id);
+                return NotFound("Destination not found");
             }
 
-            var result = _mapper.Map<DayTripReturnedDto>(dayTrip);
+            var result = _mapper.Map<DestinationReturnedDto>(destination);
 
-            _logger.LogInformation("Returned day trip with Id: {Id}", id);
+            _logger.LogInformation("Returned destination with Id: {Id}", id);
             return Ok(result);
         }
 
-        [HttpGet("getSimilarDayTrips")]
-        public async Task<ActionResult<List<DayTripSummaryDto>>> GetSimilarDayTrips([FromQuery] int id)
+        [HttpGet("getSimilarDestinations")]
+        public async Task<ActionResult<List<DestinationSummaryDto>>> GetSimilarDestinations([FromQuery] int id)
         {
-            _logger.LogInformation("Received GetSimilarDayTrips request for day trip Id: {Id}", id);
+            _logger.LogInformation("Received GetSimilarDestinations request for destination Id: {Id}", id);
 
-            var selectedDayTrip = await _dayTripRepo.GetByIdAsync(id);
-            if (selectedDayTrip == null)
+            var selectedDestination = await _destinationRepo.GetByIdAsync(id);
+            if (selectedDestination == null)
             {
-                _logger.LogWarning("Day trip with Id {Id} not found", id);
-                return NotFound("Selected day trip not found");
+                _logger.LogWarning("Destination with Id {Id} not found", id);
+                return NotFound("Selected destination not found");
             }
 
-            var allDayTrips = await _dayTripRepo.GetAllAsync();
-            var otherDayTrips = allDayTrips.Where(dt => dt.Id != id).ToList();
+            var allDestinations = await _destinationRepo.GetAllAsync();
+            var otherDestinations = allDestinations.Where(dt => dt.Id != id).ToList();
 
-            var similarDayTrips = otherDayTrips
+            var similarDestinations = otherDestinations
                 .GroupBy(dt => dt.City) // Group by City first
-                .SelectMany(g => g.OrderBy(dt => Math.Abs(dt.PricePerPerson - selectedDayTrip.PricePerPerson)))
+                .SelectMany(g => g.OrderBy(dt => Math.Abs(dt.PricePerPerson - selectedDestination.PricePerPerson)))
                 .Take(3)
                 .ToList();
 
-            var result = _mapper.Map<List<DayTripSummaryDto>>(similarDayTrips);
+            var result = _mapper.Map<List<DestinationSummaryDto>>(similarDestinations);
 
-            _logger.LogInformation("Returned {Count} similar day trips for day trip Id: {Id}", result.Count, id);
+            _logger.LogInformation("Returned {Count} similar destinations for destination Id: {Id}", result.Count, id);
             return Ok(result);
         }
 
-        [HttpGet("getAllDayTripCities")]
-        public async Task<ActionResult<List<CityDto>>> GetAllDayTripCities()
+        [HttpGet("getAllDestinationCities")]
+        public async Task<ActionResult<List<CityDto>>> GetAllDestinationCities()
         {
-            _logger.LogInformation("Received GetAllDayTripCities request");
+            _logger.LogInformation("Received GetAllDestinationCities request");
 
-            var dayTrips = await _dayTripRepo.GetAllAsync();
+            var destinations = await _destinationRepo.GetAllAsync();
 
-            var cities = dayTrips
+            var cities = destinations
                 .GroupBy(dt => dt.City) // نجمع بالمدينة
                 .Select(g => new CityDto
                 {
@@ -242,25 +258,25 @@ namespace Mistria.API.Controllers
                 })
                 .ToList();
 
-            _logger.LogInformation("Returned {Count} unique day trip cities", cities.Count);
+            _logger.LogInformation("Returned {Count} unique destination cities", cities.Count);
             return Ok(cities);
         }
 
-        [HttpGet("getDayTripsByCity")]
-        public async Task<ActionResult<List<DayTripSummaryDto>>> GetDayTripsByCity([FromQuery] string city)
+        [HttpGet("getDestinationsByCity")]
+        public async Task<ActionResult<List<DestinationSummaryDto>>> GetDestinationsByCity([FromQuery] string city)
         {
-            _logger.LogInformation("Received GetDayTripsByCity request for city: {City}", city);
+            _logger.LogInformation("Received GetDestinationsByCity request for city: {City}", city);
 
-            var dayTrips = await _dayTripRepo.GetAllAsync(dt => dt.City == city);
-            if (!dayTrips.Any())
+            var destinations = await _destinationRepo.GetAllAsync(dt => dt.City == city);
+            if (!destinations.Any())
             {
-                _logger.LogWarning("No day trips found for city: {City}", city);
-                return NotFound($"No day trips found for city: {city}");
+                _logger.LogWarning("No destinations found for city: {City}", city);
+                return NotFound($"No destinations found for city: {city}");
             }
 
-            var result = _mapper.Map<List<DayTripSummaryDto>>(dayTrips);
+            var result = _mapper.Map<List<DestinationSummaryDto>>(destinations);
 
-            _logger.LogInformation("Returned {Count} day trips for city: {City}", result.Count, city);
+            _logger.LogInformation("Returned {Count} destinations for city: {City}", result.Count, city);
             return Ok(result);
         }
         #endregion
@@ -313,6 +329,96 @@ namespace Mistria.API.Controllers
             return Ok(result);
         }
 
+        #region AboutUs
+
+        [HttpGet("getAboutUs")]
+        public async Task<ActionResult<AboutUsReturnedDto>> GetAboutUs()
+        {
+            _logger.LogInformation("Received GetAboutUs request");
+
+            var aboutUs = (await _aboutUsRepo.GetAllAsync()).FirstOrDefault();
+            if (aboutUs == null)
+                return NotFound("About us has not been set up yet");
+
+            var result = _mapper.Map<AboutUsReturnedDto>(aboutUs);
+            return Ok(result);
+        }
+
+        [HttpGet("getAllFounders")]
+        public async Task<ActionResult<List<FounderReturnedDto>>> GetAllFounders()
+        {
+            _logger.LogInformation("Received GetAllFounders request");
+
+            var founders = await _founderRepo.GetAllAsync();
+            var result = _mapper.Map<List<FounderReturnedDto>>(founders);
+
+            _logger.LogInformation("Returned {Count} founders", result.Count);
+            return Ok(result);
+        }
+
+        #endregion
+
+        #region Blog
+
+        [HttpGet("getAllBlogs")]
+        public async Task<ActionResult<List<BlogReturnedDto>>> GetAllBlogs()
+        {
+            _logger.LogInformation("Received GetAllBlogs request");
+
+            var blogs = await _blogRepo.GetAllAsync();
+            var result = _mapper.Map<List<BlogReturnedDto>>(blogs);
+
+            _logger.LogInformation("Returned {Count} blogs", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getBlogById/{id}")]
+        public async Task<ActionResult<BlogReturnedDto>> GetBlogById(int id)
+        {
+            _logger.LogInformation("Received GetBlogById request for Id: {Id}", id);
+
+            var blog = await _blogRepo.GetByIdAsync(id);
+            if (blog == null)
+            {
+                _logger.LogWarning("Blog with Id {Id} not found", id);
+                return NotFound("Blog not found");
+            }
+
+            var result = _mapper.Map<BlogReturnedDto>(blog);
+
+            _logger.LogInformation("Returned blog with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpGet("getBlogSubsByBlogId/{blogId}")]
+        public async Task<ActionResult<List<BlogSubReturnedDto>>> GetBlogSubsByBlogId(int blogId)
+        {
+            _logger.LogInformation("Received GetBlogSubsByBlogId request for BlogId: {BlogId}", blogId);
+
+            var blog = await _blogRepo.GetByIdAsync(blogId);
+            if (blog == null)
+                return NotFound("Blog not found");
+
+            var blogSubs = await _blogSubRepo.GetAllAsync(s => s.BlogId == blogId);
+            var result = _mapper.Map<List<BlogSubReturnedDto>>(blogSubs);
+
+            _logger.LogInformation("Returned {Count} blog subs for BlogId: {BlogId}", result.Count, blogId);
+            return Ok(result);
+        }
+
+        #endregion
+
+        [HttpGet("getAllPaymentMethods")]
+        public async Task<ActionResult<List<PaymentMethodReturnedDto>>> GetAllPaymentMethods()
+        {
+            _logger.LogInformation("Received GetAllPaymentMethods request");
+
+            var paymentMethods = await _paymentMethodRepo.GetAllAsync();
+            var result = _mapper.Map<List<PaymentMethodReturnedDto>>(paymentMethods);
+
+            _logger.LogInformation("Returned {Count} payment methods", result.Count);
+            return Ok(result);
+        }
 
     }
 }
