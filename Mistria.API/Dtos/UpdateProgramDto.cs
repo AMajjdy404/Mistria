@@ -1,4 +1,4 @@
-﻿namespace Mistria.API.Dtos
+namespace Mistria.API.Dtos
 {
     public class UpdateProgramDto
     {
@@ -9,8 +9,11 @@
         public List<IFormFile>? Images { get; set; }
         public IFormFile? CoverImage { get; set; }
         public List<string>? Included { get; set; }
-        public decimal? PricePerPerson { get; set; }
-        public bool? IsMain { get; set; } 
+        public List<string>? Excluded { get; set; }
+        public bool? IsMain { get; set; }
         public string? ItineraryJson { get; set; }
+        public List<IFormFile>? ItineraryDayImages { get; set; }
+        public List<int>? ItineraryDayImageIndexes { get; set; }
+        public string? PricingTiersJson { get; set; }
     }
 }

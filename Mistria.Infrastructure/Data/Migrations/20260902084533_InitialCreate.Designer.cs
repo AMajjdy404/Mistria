@@ -12,8 +12,8 @@ using Mistria.Infrastructure.Data;
 namespace Mistria.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TravelDbContext))]
-    [Migration("20260825150430_PaymentMethodModule")]
-    partial class PaymentMethodModule
+    [Migration("20260902084533_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -326,7 +326,24 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("BlogSubs");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.DayTrip", b =>
+            modelBuilder.Entity("Mistria.Domain.Models.CustomerPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CustomerPhotos");
+                });
+
+            modelBuilder.Entity("Mistria.Domain.Models.Destination", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -379,7 +396,7 @@ namespace Mistria.Infrastructure.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("DayTrips");
+                    b.ToTable("Destinations");
                 });
 
             modelBuilder.Entity("Mistria.Domain.Models.Event", b =>
@@ -449,6 +466,125 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("PaymentMethods");
                 });
 
+            modelBuilder.Entity("Mistria.Domain.Models.Reel", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CoverImage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IframeLink")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reels");
+                });
+
+            modelBuilder.Entity("Mistria.Domain.Models.Review", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverImage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewLink")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Reviews");
+                });
+
+            modelBuilder.Entity("Mistria.Domain.Models.ReviewPlatform", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ReviewsCountLabel")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReviewPlatforms");
+                });
+
+            modelBuilder.Entity("Mistria.Domain.Models.ReviewsSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Image")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("YoutubeChannelLink")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ReviewsSettingsInfos");
+                });
+
             modelBuilder.Entity("Mistria.Domain.Models.Service", b =>
                 {
                     b.Property<int>("Id")
@@ -478,6 +614,31 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Services");
                 });
 
+            modelBuilder.Entity("Mistria.Domain.Models.SocialMediaLink", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SocialMediaLinks");
+                });
+
             modelBuilder.Entity("Mistria.Domain.Models.TravelProgram", b =>
                 {
                     b.Property<int>("Id")
@@ -494,6 +655,10 @@ namespace Mistria.Infrastructure.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Excluded")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Images")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -505,10 +670,6 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.Property<bool?>("IsMain")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Itinerary")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -516,10 +677,6 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.Property<string>("LocationUrl")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("PricePerPerson")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -604,6 +761,176 @@ namespace Mistria.Infrastructure.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Mistria.Domain.Models.TravelProgram", b =>
+                {
+                    b.OwnsMany("Mistria.Domain.Models.ItineraryDay", "Itinerary", b1 =>
+                        {
+                            b1.Property<int>("TravelProgramId")
+                                .HasColumnType("int");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            b1.Property<string>("Accommodation")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<int>("DayNumber")
+                                .HasColumnType("int");
+
+                            b1.Property<string>("Description")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("Image")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("Meals")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.Property<string>("Title")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("TravelProgramId", "Id");
+
+                            b1.ToTable("TravelPrograms");
+
+                            b1.ToJson("Itinerary");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TravelProgramId");
+
+                            b1.OwnsMany("Mistria.Domain.Models.ItineraryEvent", "Events", b2 =>
+                                {
+                                    b2.Property<int>("ItineraryDayTravelProgramId")
+                                        .HasColumnType("int");
+
+                                    b2.Property<int>("ItineraryDayId")
+                                        .HasColumnType("int");
+
+                                    b2.Property<int>("Id")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("int");
+
+                                    b2.Property<string>("Description")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)");
+
+                                    b2.Property<string>("Title")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)");
+
+                                    b2.Property<string>("Type")
+                                        .IsRequired()
+                                        .HasColumnType("nvarchar(max)");
+
+                                    b2.HasKey("ItineraryDayTravelProgramId", "ItineraryDayId", "Id");
+
+                                    b2.ToTable("TravelPrograms");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("ItineraryDayTravelProgramId", "ItineraryDayId");
+                                });
+
+                            b1.Navigation("Events");
+                        });
+
+                    b.OwnsMany("Mistria.Domain.Models.PricingTier", "PricingTiers", b1 =>
+                        {
+                            b1.Property<int>("TravelProgramId")
+                                .HasColumnType("int");
+
+                            b1.Property<int>("Id")
+                                .ValueGeneratedOnAdd()
+                                .HasColumnType("int");
+
+                            b1.Property<bool>("IsMostChosen")
+                                .HasColumnType("bit");
+
+                            b1.Property<string>("Name")
+                                .IsRequired()
+                                .HasColumnType("nvarchar(max)");
+
+                            b1.HasKey("TravelProgramId", "Id");
+
+                            b1.ToTable("TravelPrograms");
+
+                            b1.ToJson("PricingTiers");
+
+                            b1.WithOwner()
+                                .HasForeignKey("TravelProgramId");
+
+                            b1.OwnsMany("Mistria.Domain.Models.PricingDateRange", "DateRanges", b2 =>
+                                {
+                                    b2.Property<int>("PricingTierTravelProgramId")
+                                        .HasColumnType("int");
+
+                                    b2.Property<int>("PricingTierId")
+                                        .HasColumnType("int");
+
+                                    b2.Property<int>("Id")
+                                        .ValueGeneratedOnAdd()
+                                        .HasColumnType("int");
+
+                                    b2.Property<DateTime>("EndDate")
+                                        .HasColumnType("datetime2");
+
+                                    b2.Property<DateTime>("StartDate")
+                                        .HasColumnType("datetime2");
+
+                                    b2.HasKey("PricingTierTravelProgramId", "PricingTierId", "Id");
+
+                                    b2.ToTable("TravelPrograms");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("PricingTierTravelProgramId", "PricingTierId");
+
+                                    b2.OwnsMany("Mistria.Domain.Models.GroupPricing", "GroupPricing", b3 =>
+                                        {
+                                            b3.Property<int>("PricingDateRangePricingTierTravelProgramId")
+                                                .HasColumnType("int");
+
+                                            b3.Property<int>("PricingDateRangePricingTierId")
+                                                .HasColumnType("int");
+
+                                            b3.Property<int>("PricingDateRangeId")
+                                                .HasColumnType("int");
+
+                                            b3.Property<int>("Id")
+                                                .ValueGeneratedOnAdd()
+                                                .HasColumnType("int");
+
+                                            b3.Property<string>("GroupSizeLabel")
+                                                .IsRequired()
+                                                .HasColumnType("nvarchar(max)");
+
+                                            b3.Property<decimal>("PricePerPerson")
+                                                .HasPrecision(18, 2)
+                                                .HasColumnType("decimal(18,2)");
+
+                                            b3.HasKey("PricingDateRangePricingTierTravelProgramId", "PricingDateRangePricingTierId", "PricingDateRangeId", "Id");
+
+                                            b3.ToTable("TravelPrograms");
+
+                                            b3.WithOwner()
+                                                .HasForeignKey("PricingDateRangePricingTierTravelProgramId", "PricingDateRangePricingTierId", "PricingDateRangeId");
+                                        });
+
+                                    b2.Navigation("GroupPricing");
+                                });
+
+                            b1.Navigation("DateRanges");
+                        });
+
+                    b.Navigation("Itinerary");
+
+                    b.Navigation("PricingTiers");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -26,16 +26,28 @@ namespace Mistria.Domain.Models
         [Required]
 
         public string CoverImage { get; set; }
-   
-        [Required]
 
-        public List<string> Included { get; set; }
         [Required]
+        public List<string> Included { get; set; } = new List<string>();
 
-        public decimal PricePerPerson { get; set; }
-        
+        [Required]
+        public List<string> Excluded { get; set; } = new List<string>();
+
         public bool? IsMain { get; set; } = false;
-        [Required]
-        public Dictionary<string, string> Itinerary { get; set; } = new Dictionary<string, string>();
+
+        public List<ItineraryDay> Itinerary { get; set; } = new List<ItineraryDay>();
+
+        public List<PricingTier> PricingTiers { get; set; } = new List<PricingTier>();
+
+        public decimal? GetStartingPrice()
+        {
+            var prices = PricingTiers?
+                .SelectMany(t => t.DateRanges ?? new List<PricingDateRange>())
+                .SelectMany(d => d.GroupPricing ?? new List<GroupPricing>())
+                .Select(g => g.PricePerPerson)
+                .ToList();
+
+            return prices != null && prices.Count > 0 ? prices.Min() : null;
+        }
     }
 }

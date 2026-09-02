@@ -1,4 +1,4 @@
-﻿using Mistria.Domain.Models;
+using Mistria.Domain.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace Mistria.API.Dtos
@@ -13,8 +13,10 @@ namespace Mistria.API.Dtos
         public List<string> Images { get; set; }
         public string CoverImage { get; set; }
         public List<string> Included { get; set; }
-        public decimal PricePerPerson { get; set; }
+        public List<string> Excluded { get; set; }
         public bool IsMain { get; set; }
-        public Dictionary<string, string> Itinerary { get; set; }
+        public List<ItineraryDayReturnedDto> Itinerary { get; set; }
+        public List<PricingTier> PricingTiers { get; set; }
+        public decimal? StartingFromPrice { get; set; }
     }
 }

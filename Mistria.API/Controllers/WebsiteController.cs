@@ -29,6 +29,12 @@ namespace Mistria.API.Controllers
         private readonly IGenericRepository<Blog> _blogRepo;
         private readonly IGenericRepository<BlogSub> _blogSubRepo;
         private readonly IGenericRepository<PaymentMethod> _paymentMethodRepo;
+        private readonly IGenericRepository<Review> _reviewRepo;
+        private readonly IGenericRepository<ReviewPlatform> _reviewPlatformRepo;
+        private readonly IGenericRepository<Reel> _reelRepo;
+        private readonly IGenericRepository<CustomerPhoto> _customerPhotoRepo;
+        private readonly IGenericRepository<ReviewsSettings> _reviewsSettingsRepo;
+        private readonly IGenericRepository<SocialMediaLink> _socialMediaLinkRepo;
         private readonly ILogger<DashboardController> _logger;
         private readonly IMapper _mapper;
 
@@ -46,6 +52,12 @@ namespace Mistria.API.Controllers
             IGenericRepository<Blog> blogRepo,
             IGenericRepository<BlogSub> blogSubRepo,
             IGenericRepository<PaymentMethod> paymentMethodRepo,
+            IGenericRepository<Review> reviewRepo,
+            IGenericRepository<ReviewPlatform> reviewPlatformRepo,
+            IGenericRepository<Reel> reelRepo,
+            IGenericRepository<CustomerPhoto> customerPhotoRepo,
+            IGenericRepository<ReviewsSettings> reviewsSettingsRepo,
+            IGenericRepository<SocialMediaLink> socialMediaLinkRepo,
             ILogger<DashboardController> logger,
             IMapper mapper)
         {
@@ -63,6 +75,12 @@ namespace Mistria.API.Controllers
             _blogRepo = blogRepo;
             _blogSubRepo = blogSubRepo;
             _paymentMethodRepo = paymentMethodRepo;
+            _reviewRepo = reviewRepo;
+            _reviewPlatformRepo = reviewPlatformRepo;
+            _reelRepo = reelRepo;
+            _customerPhotoRepo = customerPhotoRepo;
+            _reviewsSettingsRepo = reviewsSettingsRepo;
+            _socialMediaLinkRepo = socialMediaLinkRepo;
             _logger = logger;
             _mapper = mapper;
         }
@@ -156,8 +174,9 @@ namespace Mistria.API.Controllers
             var allPrograms = await _travelProgramRepo.GetAllAsync();
             var otherPrograms = allPrograms.Where(p => p.Id != id).ToList();
 
+            var selectedPrice = selectedProgram.GetStartingPrice() ?? 0;
             var similarPrograms = otherPrograms
-                .Select(p => new { Program = p, Difference = Math.Abs(p.PricePerPerson - selectedProgram.PricePerPerson) })
+                .Select(p => new { Program = p, Difference = Math.Abs((p.GetStartingPrice() ?? 0) - selectedPrice) })
                 .OrderBy(x => x.Difference)
                 .Take(3)
                 .Select(x => x.Program)
@@ -417,6 +436,83 @@ namespace Mistria.API.Controllers
             var result = _mapper.Map<List<PaymentMethodReturnedDto>>(paymentMethods);
 
             _logger.LogInformation("Returned {Count} payment methods", result.Count);
+            return Ok(result);
+        }
+
+        #region Reviews
+
+        [HttpGet("getAllReviews")]
+        public async Task<ActionResult<List<ReviewReturnedDto>>> GetAllReviews()
+        {
+            _logger.LogInformation("Received GetAllReviews request");
+
+            var reviews = await _reviewRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReviewReturnedDto>>(reviews);
+
+            _logger.LogInformation("Returned {Count} reviews", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getAllReviewPlatforms")]
+        public async Task<ActionResult<List<ReviewPlatformReturnedDto>>> GetAllReviewPlatforms()
+        {
+            _logger.LogInformation("Received GetAllReviewPlatforms request");
+
+            var platforms = await _reviewPlatformRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReviewPlatformReturnedDto>>(platforms);
+
+            _logger.LogInformation("Returned {Count} review platforms", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getAllReels")]
+        public async Task<ActionResult<List<ReelReturnedDto>>> GetAllReels()
+        {
+            _logger.LogInformation("Received GetAllReels request");
+
+            var reels = await _reelRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReelReturnedDto>>(reels);
+
+            _logger.LogInformation("Returned {Count} reels", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getAllCustomerPhotos")]
+        public async Task<ActionResult<List<CustomerPhotoReturnedDto>>> GetAllCustomerPhotos()
+        {
+            _logger.LogInformation("Received GetAllCustomerPhotos request");
+
+            var photos = await _customerPhotoRepo.GetAllAsync();
+            var result = _mapper.Map<List<CustomerPhotoReturnedDto>>(photos);
+
+            _logger.LogInformation("Returned {Count} customer photos", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getReviewsSettings")]
+        public async Task<ActionResult<ReviewsSettingsReturnedDto>> GetReviewsSettings()
+        {
+            _logger.LogInformation("Received GetReviewsSettings request");
+
+            var settings = (await _reviewsSettingsRepo.GetAllAsync()).FirstOrDefault();
+            if (settings == null)
+                return NotFound("Reviews settings have not been set up yet");
+
+            var result = _mapper.Map<ReviewsSettingsReturnedDto>(settings);
+            return Ok(result);
+        }
+
+        #endregion
+
+        [HttpGet("getAllSocialMediaLinks")]
+        public async Task<ActionResult<List<SocialMediaLinkReturnedDto>>> GetAllSocialMediaLinks()
+        {
+            _logger.LogInformation("Received GetAllSocialMediaLinks request");
+
+            var socialMediaLinks = await _socialMediaLinkRepo.GetAllAsync();
+            var result = _mapper.Map<List<SocialMediaLinkReturnedDto>>(socialMediaLinks);
+
+            _logger.LogInformation("Returned {Count} social media links", result.Count);
             return Ok(result);
         }
 

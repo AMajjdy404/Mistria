@@ -36,6 +36,12 @@ namespace Mistria.API.Controllers
         private readonly IGenericRepository<Blog> _blogRepo;
         private readonly IGenericRepository<BlogSub> _blogSubRepo;
         private readonly IGenericRepository<PaymentMethod> _paymentMethodRepo;
+        private readonly IGenericRepository<Review> _reviewRepo;
+        private readonly IGenericRepository<ReviewPlatform> _reviewPlatformRepo;
+        private readonly IGenericRepository<Reel> _reelRepo;
+        private readonly IGenericRepository<CustomerPhoto> _customerPhotoRepo;
+        private readonly IGenericRepository<ReviewsSettings> _reviewsSettingsRepo;
+        private readonly IGenericRepository<SocialMediaLink> _socialMediaLinkRepo;
         private readonly IMapper _mapper;
         private readonly ILogger<DashboardController> _logger;
 
@@ -55,6 +61,12 @@ namespace Mistria.API.Controllers
             IGenericRepository<Blog> blogRepo,
             IGenericRepository<BlogSub> blogSubRepo,
             IGenericRepository<PaymentMethod> paymentMethodRepo,
+            IGenericRepository<Review> reviewRepo,
+            IGenericRepository<ReviewPlatform> reviewPlatformRepo,
+            IGenericRepository<Reel> reelRepo,
+            IGenericRepository<CustomerPhoto> customerPhotoRepo,
+            IGenericRepository<ReviewsSettings> reviewsSettingsRepo,
+            IGenericRepository<SocialMediaLink> socialMediaLinkRepo,
             IMapper mapper,
             ILogger<DashboardController> logger
 
@@ -76,6 +88,12 @@ namespace Mistria.API.Controllers
             _blogRepo = blogRepo;
             _blogSubRepo = blogSubRepo;
             _paymentMethodRepo = paymentMethodRepo;
+            _reviewRepo = reviewRepo;
+            _reviewPlatformRepo = reviewPlatformRepo;
+            _reelRepo = reelRepo;
+            _customerPhotoRepo = customerPhotoRepo;
+            _reviewsSettingsRepo = reviewsSettingsRepo;
+            _socialMediaLinkRepo = socialMediaLinkRepo;
             _mapper = mapper;
             _logger = logger;
         }
@@ -250,43 +268,128 @@ namespace Mistria.API.Controllers
         #endregion
 
         #region Program
+
+        private static readonly JsonSerializerOptions ProgramJsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        private bool TryParseItinerary(string? json, out List<ItineraryDay> itinerary, out string error)
+        {
+            itinerary = new List<ItineraryDay>();
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                error = "Itinerary JSON is required";
+                return false;
+            }
+
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<List<ItineraryDay>>(json.Trim(), ProgramJsonOptions);
+                if (parsed == null || parsed.Count == 0)
+                {
+                    error = "Itinerary is required and cannot be empty";
+                    return false;
+                }
+                if (parsed.Any(d => string.IsNullOrWhiteSpace(d.Title)))
+                {
+                    error = "Each itinerary day requires a Title";
+                    return false;
+                }
+
+                itinerary = parsed;
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, json);
+                error = "Invalid itinerary JSON format. Expected an array of day objects, e.g. [{\"dayNumber\":1,\"title\":\"...\",\"description\":\"...\"}]";
+                return false;
+            }
+        }
+
+        private bool TryParsePricingTiers(string? json, out List<PricingTier> tiers, out string error)
+        {
+            tiers = new List<PricingTier>();
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                error = "Pricing tiers JSON is required";
+                return false;
+            }
+
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<List<PricingTier>>(json.Trim(), ProgramJsonOptions);
+                if (parsed == null || parsed.Count == 0)
+                {
+                    error = "Pricing tiers are required and cannot be empty";
+                    return false;
+                }
+                if (parsed.Any(t => string.IsNullOrWhiteSpace(t.Name)))
+                {
+                    error = "Each pricing tier requires a Name";
+                    return false;
+                }
+
+                tiers = parsed;
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize pricing tiers JSON: {Message} | Raw JSON: {Json}", ex.Message, json);
+                error = "Invalid pricing tiers JSON format. Expected an array of tier objects, e.g. [{\"name\":\"Gold\",\"dateRanges\":[...]}]";
+                return false;
+            }
+        }
+
+        // Applies ItineraryDayImages (matched by ItineraryDayImageIndexes) onto the parsed itinerary days.
+        // Uploaded file URLs are appended to uploadedImageUrls so callers can clean them up on failure.
+        private ActionResult? ApplyItineraryDayImages(List<ItineraryDay> itinerary, List<IFormFile>? dayImages, List<int>? dayImageIndexes, List<string> uploadedImageUrls)
+        {
+            if (dayImages == null || !dayImages.Any())
+                return null;
+
+            if (dayImageIndexes == null || dayImageIndexes.Count != dayImages.Count)
+                return BadRequest("ItineraryDayImageIndexes must be provided and match the number of ItineraryDayImages");
+
+            for (int i = 0; i < dayImages.Count; i++)
+            {
+                var idx = dayImageIndexes[i];
+                if (idx < 0 || idx >= itinerary.Count)
+                    return BadRequest($"ItineraryDayImageIndexes contains an out-of-range index: {idx}");
+
+                var file = dayImages[i];
+                if (file?.Length > 0)
+                {
+                    var url = DocumentSettings.UploadFile(file, "ProgramsItinerary");
+                    if (string.IsNullOrEmpty(url))
+                        return BadRequest("Failed to upload itinerary day image");
+
+                    uploadedImageUrls.Add(url);
+                    itinerary[idx].Image = url;
+                }
+            }
+
+            return null;
+        }
+
         [HttpPost("addProgram")]
         public async Task<ActionResult> AddProgram([FromForm] ProgramDto programDto)
         {
             _logger.LogInformation("Received AddProgram request. ItineraryJson: '{Json}'", programDto.ItineraryJson ?? "null");
             _logger.LogInformation("ModelState Errors: {Errors}", string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
-            Dictionary<string, string> itinerary = new Dictionary<string, string>();
-            if (!string.IsNullOrWhiteSpace(programDto.ItineraryJson))
+            if (!TryParseItinerary(programDto.ItineraryJson, out var itinerary, out var itineraryError))
             {
-                try
-                {
-                    var cleanedJson = programDto.ItineraryJson.Trim();
-                    _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
-                    using var doc = JsonDocument.Parse(cleanedJson);
-                    if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                    {
-                        _logger.LogWarning("ItineraryJson is not a valid object: {Json}", cleanedJson);
-                        return BadRequest("Itinerary JSON must be an object (e.g., {\"key\": \"value\"})");
-                    }
-                    itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, programDto.ItineraryJson);
-                    return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", \"key2\": \"value2\"}");
-                }
-            }
-            else
-            {
-                _logger.LogWarning("ItineraryJson is null or empty");
-                return BadRequest("Itinerary JSON is required");
+                _logger.LogWarning("Invalid itinerary: {Error}", itineraryError);
+                return BadRequest(itineraryError);
             }
 
-            if (itinerary.Count == 0)
+            if (!TryParsePricingTiers(programDto.PricingTiersJson, out var pricingTiers, out var pricingError))
             {
-                _logger.LogWarning("Itinerary is empty after deserialization");
-                return BadRequest("Itinerary is required and cannot be empty");
+                _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
+                return BadRequest(pricingError);
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -305,6 +408,7 @@ namespace Mistria.API.Controllers
             }
 
             var imageUrls = new List<string>();
+            var itineraryImageUrls = new List<string>();
             string cover = string.Empty;
 
             using var transaction = await _travelProgramRepo.BeginTransactionAsync();
@@ -332,6 +436,10 @@ namespace Mistria.API.Controllers
                         return BadRequest("Failed to upload images");
                 }
 
+                var imagesResult = ApplyItineraryDayImages(itinerary, programDto.ItineraryDayImages, programDto.ItineraryDayImageIndexes, itineraryImageUrls);
+                if (imagesResult != null)
+                    return imagesResult;
+
                 var program = new TravelProgram
                 {
                     Title = programDto.Title?.Trim(),
@@ -341,9 +449,10 @@ namespace Mistria.API.Controllers
                     Images = imageUrls,
                     CoverImage = cover,
                     Included = programDto.Included ?? new List<string>(),
-                    PricePerPerson = programDto.PricePerPerson,
+                    Excluded = programDto.Excluded ?? new List<string>(),
                     IsMain = programDto.IsMain,
-                    Itinerary = itinerary
+                    Itinerary = itinerary,
+                    PricingTiers = pricingTiers
                 };
 
                 await _travelProgramRepo.AddAsync(program);
@@ -372,6 +481,11 @@ namespace Mistria.API.Controllers
                     DocumentSettings.DeleteFile(imageUrl, "Programs");
                 }
 
+                foreach (var imageUrl in itineraryImageUrls)
+                {
+                    DocumentSettings.DeleteFile(imageUrl, "ProgramsItinerary");
+                }
+
                 _logger.LogError(ex, "Failed to create program: {Message}", ex.Message);
                 return StatusCode(500, $"An error occurred while creating the program: {ex.Message}");
             }
@@ -390,41 +504,23 @@ namespace Mistria.API.Controllers
                 return NotFound("Program not found");
             }
 
-            Dictionary<string, string> itinerary = program.Itinerary ?? new Dictionary<string, string>();
+            var itinerary = program.Itinerary ?? new List<ItineraryDay>();
             if (!string.IsNullOrWhiteSpace(programDto.ItineraryJson))
             {
-                try
+                if (!TryParseItinerary(programDto.ItineraryJson, out itinerary, out var itineraryError))
                 {
-                    var cleanedJson = programDto.ItineraryJson.Trim();
-                    _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
-                    using var doc = JsonDocument.Parse(cleanedJson);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                    {
-                        var firstObject = doc.RootElement[0];
-                        if (firstObject.ValueKind == JsonValueKind.Object)
-                        {
-                            itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(firstObject.GetRawText()) ?? new Dictionary<string, string>();
-                        }
-                        else
-                        {
-                            _logger.LogWarning("First element in ItineraryJson array is not an object: {Json}", cleanedJson);
-                            return BadRequest("Itinerary JSON array must contain at least one object (e.g., [{\"key\": \"value\"}])");
-                        }
-                    }
-                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                    {
-                        itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
-                    }
-                    else
-                    {
-                        _logger.LogWarning("ItineraryJson is not a valid object or array: {Json}", cleanedJson);
-                        return BadRequest("Itinerary JSON must be an object or array of objects (e.g., {\"key\": \"value\"} or [{\"key\": \"value\"}])");
-                    }
+                    _logger.LogWarning("Invalid itinerary: {Error}", itineraryError);
+                    return BadRequest(itineraryError);
                 }
-                catch (JsonException ex)
+            }
+
+            var pricingTiers = program.PricingTiers ?? new List<PricingTier>();
+            if (!string.IsNullOrWhiteSpace(programDto.PricingTiersJson))
+            {
+                if (!TryParsePricingTiers(programDto.PricingTiersJson, out pricingTiers, out var pricingError))
                 {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, programDto.ItineraryJson);
-                    return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
+                    _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
+                    return BadRequest(pricingError);
                 }
             }
 
@@ -444,6 +540,7 @@ namespace Mistria.API.Controllers
             }
 
             var imageUrls = program.Images ?? new List<string>();
+            var itineraryImageUrls = new List<string>();
             string cover = program.CoverImage ?? string.Empty;
 
             using var transaction = await _travelProgramRepo.BeginTransactionAsync();
@@ -458,12 +555,19 @@ namespace Mistria.API.Controllers
                     program.Location = programDto.Location.Trim();
                 if (!string.IsNullOrWhiteSpace(programDto.LocationUrl))
                     program.LocationUrl = programDto.LocationUrl.Trim();
-                if (programDto.PricePerPerson.HasValue)
-                    program.PricePerPerson = programDto.PricePerPerson.Value;
                 if (programDto.IsMain.HasValue)
                     program.IsMain = programDto.IsMain.Value;
                 if (programDto.Included != null)
                     program.Included = programDto.Included;
+                if (programDto.Excluded != null)
+                    program.Excluded = programDto.Excluded;
+                if (programDto.PricingTiersJson != null)
+                    program.PricingTiers = pricingTiers;
+
+                var imagesResult = ApplyItineraryDayImages(itinerary, programDto.ItineraryDayImages, programDto.ItineraryDayImageIndexes, itineraryImageUrls);
+                if (imagesResult != null)
+                    return imagesResult;
+
                 if (programDto.ItineraryJson != null) // Check for null instead of empty
                     program.Itinerary = itinerary;
 
@@ -520,6 +624,11 @@ namespace Mistria.API.Controllers
                     DocumentSettings.DeleteFile(imageUrl, "Programs");
                 }
 
+                foreach (var imageUrl in itineraryImageUrls)
+                {
+                    DocumentSettings.DeleteFile(imageUrl, "ProgramsItinerary");
+                }
+
                 _logger.LogError(ex, "Failed to update program: {Message}", ex.Message);
                 return StatusCode(500, $"An error occurred while updating the program: {ex.Message}");
             }
@@ -554,6 +663,12 @@ namespace Mistria.API.Controllers
                 foreach (var imageUrl in program.Images ?? new List<string>())
                 {
                     DocumentSettings.DeleteFile(imageUrl, "Programs");
+                }
+
+                foreach (var day in program.Itinerary ?? new List<ItineraryDay>())
+                {
+                    if (!string.IsNullOrEmpty(day.Image))
+                        DocumentSettings.DeleteFile(day.Image, "ProgramsItinerary");
                 }
 
                 _travelProgramRepo.Delete(program);
@@ -2977,6 +3092,1254 @@ namespace Mistria.API.Controllers
                 await _paymentMethodRepo.RollbackAsync(transaction);
                 _logger.LogError(ex, "Failed to delete payment method: {Message}", ex.Message);
                 return StatusCode(500, $"An error occurred while deleting the payment method: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Reviews
+
+        #region Review
+
+        [HttpPost("addReview")]
+        [Authorize]
+        public async Task<ActionResult> AddReview([FromForm] ReviewDto reviewDto)
+        {
+            _logger.LogInformation("Received AddReview request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = string.Empty;
+
+            using var transaction = await _reviewRepo.BeginTransactionAsync();
+            try
+            {
+                if (reviewDto.CoverImage != null)
+                {
+                    cover = DocumentSettings.UploadFile(reviewDto.CoverImage, "ReviewsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                var review = new Review
+                {
+                    Name = reviewDto.Name?.Trim(),
+                    Country = reviewDto.Country?.Trim(),
+                    Rating = reviewDto.Rating,
+                    Comment = reviewDto.Comment?.Trim(),
+                    ReviewLink = reviewDto.ReviewLink?.Trim(),
+                    CoverImage = cover
+                };
+
+                await _reviewRepo.AddAsync(review);
+                await _reviewRepo.SaveChangesAsync();
+
+                if (review.Id == 0)
+                {
+                    _logger.LogError("Failed to generate Review Id");
+                    throw new InvalidOperationException("Failed to generate Review Id");
+                }
+
+                _logger.LogInformation("Review created with Id: {ReviewId}", review.Id);
+
+                await _reviewRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review created successfully", ReviewId = review.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "ReviewsCover");
+
+                _logger.LogError(ex, "Failed to create review: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the review: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateReview/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateReview(int id, [FromForm] UpdateReviewDto reviewDto)
+        {
+            _logger.LogInformation("Received UpdateReview request for Id: {Id}", id);
+
+            var review = await _reviewRepo.GetByIdAsync(id);
+            if (review == null)
+            {
+                _logger.LogWarning("Review with Id {Id} not found", id);
+                return NotFound("Review not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = review.CoverImage ?? string.Empty;
+
+            using var transaction = await _reviewRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(reviewDto.Name))
+                    review.Name = reviewDto.Name.Trim();
+                if (!string.IsNullOrWhiteSpace(reviewDto.Country))
+                    review.Country = reviewDto.Country.Trim();
+                if (reviewDto.Rating.HasValue)
+                    review.Rating = reviewDto.Rating.Value;
+                if (!string.IsNullOrWhiteSpace(reviewDto.Comment))
+                    review.Comment = reviewDto.Comment.Trim();
+                if (!string.IsNullOrWhiteSpace(reviewDto.ReviewLink))
+                    review.ReviewLink = reviewDto.ReviewLink.Trim();
+
+                if (reviewDto.CoverImage != null)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "ReviewsCover");
+                    cover = DocumentSettings.UploadFile(reviewDto.CoverImage, "ReviewsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                review.CoverImage = cover;
+
+                _reviewRepo.Update(review);
+                await _reviewRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Review updated with Id: {ReviewId}", review.Id);
+
+                await _reviewRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review updated successfully", ReviewId = review.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover) && reviewDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "ReviewsCover");
+
+                _logger.LogError(ex, "Failed to update review: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the review: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllReviews")]
+        [Authorize]
+        public async Task<ActionResult<List<ReviewReturnedDto>>> GetAllReviews()
+        {
+            _logger.LogInformation("Received GetAllReviews request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var reviews = await _reviewRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReviewReturnedDto>>(reviews);
+
+            _logger.LogInformation("Returned {Count} reviews", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getReviewById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<ReviewReturnedDto>> GetReviewById(int id)
+        {
+            _logger.LogInformation("Received GetReviewById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var review = await _reviewRepo.GetByIdAsync(id);
+            if (review == null)
+            {
+                _logger.LogWarning("Review with Id {Id} not found", id);
+                return NotFound("Review not found");
+            }
+
+            var result = _mapper.Map<ReviewReturnedDto>(review);
+
+            _logger.LogInformation("Returned review with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteReview/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteReview(int id)
+        {
+            _logger.LogInformation("Received DeleteReview request for Id: {Id}", id);
+
+            var review = await _reviewRepo.GetByIdAsync(id);
+            if (review == null)
+            {
+                _logger.LogWarning("Review with Id {Id} not found", id);
+                return NotFound("Review not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _reviewRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(review.CoverImage))
+                    DocumentSettings.DeleteFile(review.CoverImage, "ReviewsCover");
+
+                _reviewRepo.Delete(review);
+                await _reviewRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Review deleted with Id: {ReviewId}", review.Id);
+
+                await _reviewRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review deleted successfully", ReviewId = review.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete review: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the review: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region ReviewPlatform
+
+        [HttpPost("addReviewPlatform")]
+        [Authorize]
+        public async Task<ActionResult> AddReviewPlatform([FromForm] ReviewPlatformDto platformDto)
+        {
+            _logger.LogInformation("Received AddReviewPlatform request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string icon = string.Empty;
+
+            using var transaction = await _reviewPlatformRepo.BeginTransactionAsync();
+            try
+            {
+                if (platformDto.Icon != null)
+                {
+                    icon = DocumentSettings.UploadFile(platformDto.Icon, "ReviewPlatformsIcon");
+                    if (string.IsNullOrEmpty(icon))
+                        return BadRequest("Failed to upload icon");
+                }
+
+                var platform = new ReviewPlatform
+                {
+                    Name = platformDto.Name?.Trim(),
+                    ReviewsCountLabel = platformDto.ReviewsCountLabel?.Trim(),
+                    Link = platformDto.Link?.Trim(),
+                    Icon = icon
+                };
+
+                await _reviewPlatformRepo.AddAsync(platform);
+                await _reviewPlatformRepo.SaveChangesAsync();
+
+                if (platform.Id == 0)
+                {
+                    _logger.LogError("Failed to generate ReviewPlatform Id");
+                    throw new InvalidOperationException("Failed to generate ReviewPlatform Id");
+                }
+
+                _logger.LogInformation("ReviewPlatform created with Id: {ReviewPlatformId}", platform.Id);
+
+                await _reviewPlatformRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review platform created successfully", ReviewPlatformId = platform.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewPlatformRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(icon))
+                    DocumentSettings.DeleteFile(icon, "ReviewPlatformsIcon");
+
+                _logger.LogError(ex, "Failed to create review platform: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the review platform: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateReviewPlatform/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateReviewPlatform(int id, [FromForm] UpdateReviewPlatformDto platformDto)
+        {
+            _logger.LogInformation("Received UpdateReviewPlatform request for Id: {Id}", id);
+
+            var platform = await _reviewPlatformRepo.GetByIdAsync(id);
+            if (platform == null)
+            {
+                _logger.LogWarning("ReviewPlatform with Id {Id} not found", id);
+                return NotFound("Review platform not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string icon = platform.Icon ?? string.Empty;
+
+            using var transaction = await _reviewPlatformRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(platformDto.Name))
+                    platform.Name = platformDto.Name.Trim();
+                if (!string.IsNullOrWhiteSpace(platformDto.ReviewsCountLabel))
+                    platform.ReviewsCountLabel = platformDto.ReviewsCountLabel.Trim();
+                if (!string.IsNullOrWhiteSpace(platformDto.Link))
+                    platform.Link = platformDto.Link.Trim();
+
+                if (platformDto.Icon != null)
+                {
+                    if (!string.IsNullOrEmpty(icon))
+                        DocumentSettings.DeleteFile(icon, "ReviewPlatformsIcon");
+                    icon = DocumentSettings.UploadFile(platformDto.Icon, "ReviewPlatformsIcon");
+                    if (string.IsNullOrEmpty(icon))
+                        return BadRequest("Failed to upload icon");
+                }
+
+                platform.Icon = icon;
+
+                _reviewPlatformRepo.Update(platform);
+                await _reviewPlatformRepo.SaveChangesAsync();
+
+                _logger.LogInformation("ReviewPlatform updated with Id: {ReviewPlatformId}", platform.Id);
+
+                await _reviewPlatformRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review platform updated successfully", ReviewPlatformId = platform.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewPlatformRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(icon) && platformDto.Icon != null)
+                    DocumentSettings.DeleteFile(icon, "ReviewPlatformsIcon");
+
+                _logger.LogError(ex, "Failed to update review platform: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the review platform: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllReviewPlatforms")]
+        [Authorize]
+        public async Task<ActionResult<List<ReviewPlatformReturnedDto>>> GetAllReviewPlatforms()
+        {
+            _logger.LogInformation("Received GetAllReviewPlatforms request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var platforms = await _reviewPlatformRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReviewPlatformReturnedDto>>(platforms);
+
+            _logger.LogInformation("Returned {Count} review platforms", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getReviewPlatformById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<ReviewPlatformReturnedDto>> GetReviewPlatformById(int id)
+        {
+            _logger.LogInformation("Received GetReviewPlatformById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var platform = await _reviewPlatformRepo.GetByIdAsync(id);
+            if (platform == null)
+            {
+                _logger.LogWarning("ReviewPlatform with Id {Id} not found", id);
+                return NotFound("Review platform not found");
+            }
+
+            var result = _mapper.Map<ReviewPlatformReturnedDto>(platform);
+
+            _logger.LogInformation("Returned review platform with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteReviewPlatform/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteReviewPlatform(int id)
+        {
+            _logger.LogInformation("Received DeleteReviewPlatform request for Id: {Id}", id);
+
+            var platform = await _reviewPlatformRepo.GetByIdAsync(id);
+            if (platform == null)
+            {
+                _logger.LogWarning("ReviewPlatform with Id {Id} not found", id);
+                return NotFound("Review platform not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _reviewPlatformRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(platform.Icon))
+                    DocumentSettings.DeleteFile(platform.Icon, "ReviewPlatformsIcon");
+
+                _reviewPlatformRepo.Delete(platform);
+                await _reviewPlatformRepo.SaveChangesAsync();
+
+                _logger.LogInformation("ReviewPlatform deleted with Id: {ReviewPlatformId}", platform.Id);
+
+                await _reviewPlatformRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Review platform deleted successfully", ReviewPlatformId = platform.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewPlatformRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete review platform: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the review platform: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Reel
+
+        [HttpPost("addReel")]
+        [Authorize]
+        public async Task<ActionResult> AddReel([FromForm] ReelDto reelDto)
+        {
+            _logger.LogInformation("Received AddReel request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = string.Empty;
+
+            using var transaction = await _reelRepo.BeginTransactionAsync();
+            try
+            {
+                if (reelDto.CoverImage != null)
+                {
+                    cover = DocumentSettings.UploadFile(reelDto.CoverImage, "ReelsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                var reel = new Reel
+                {
+                    Title = reelDto.Title?.Trim(),
+                    IframeLink = reelDto.IframeLink?.Trim(),
+                    CoverImage = cover
+                };
+
+                await _reelRepo.AddAsync(reel);
+                await _reelRepo.SaveChangesAsync();
+
+                if (reel.Id == 0)
+                {
+                    _logger.LogError("Failed to generate Reel Id");
+                    throw new InvalidOperationException("Failed to generate Reel Id");
+                }
+
+                _logger.LogInformation("Reel created with Id: {ReelId}", reel.Id);
+
+                await _reelRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Reel created successfully", ReelId = reel.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reelRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "ReelsCover");
+
+                _logger.LogError(ex, "Failed to create reel: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the reel: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateReel/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateReel(int id, [FromForm] UpdateReelDto reelDto)
+        {
+            _logger.LogInformation("Received UpdateReel request for Id: {Id}", id);
+
+            var reel = await _reelRepo.GetByIdAsync(id);
+            if (reel == null)
+            {
+                _logger.LogWarning("Reel with Id {Id} not found", id);
+                return NotFound("Reel not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string cover = reel.CoverImage ?? string.Empty;
+
+            using var transaction = await _reelRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(reelDto.Title))
+                    reel.Title = reelDto.Title.Trim();
+                if (!string.IsNullOrWhiteSpace(reelDto.IframeLink))
+                    reel.IframeLink = reelDto.IframeLink.Trim();
+
+                if (reelDto.CoverImage != null)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "ReelsCover");
+                    cover = DocumentSettings.UploadFile(reelDto.CoverImage, "ReelsCover");
+                    if (string.IsNullOrEmpty(cover))
+                        return BadRequest("Failed to upload cover image");
+                }
+
+                reel.CoverImage = cover;
+
+                _reelRepo.Update(reel);
+                await _reelRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Reel updated with Id: {ReelId}", reel.Id);
+
+                await _reelRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Reel updated successfully", ReelId = reel.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reelRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover) && reelDto.CoverImage != null)
+                    DocumentSettings.DeleteFile(cover, "ReelsCover");
+
+                _logger.LogError(ex, "Failed to update reel: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the reel: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllReels")]
+        [Authorize]
+        public async Task<ActionResult<List<ReelReturnedDto>>> GetAllReels()
+        {
+            _logger.LogInformation("Received GetAllReels request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var reels = await _reelRepo.GetAllAsync();
+            var result = _mapper.Map<List<ReelReturnedDto>>(reels);
+
+            _logger.LogInformation("Returned {Count} reels", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getReelById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<ReelReturnedDto>> GetReelById(int id)
+        {
+            _logger.LogInformation("Received GetReelById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var reel = await _reelRepo.GetByIdAsync(id);
+            if (reel == null)
+            {
+                _logger.LogWarning("Reel with Id {Id} not found", id);
+                return NotFound("Reel not found");
+            }
+
+            var result = _mapper.Map<ReelReturnedDto>(reel);
+
+            _logger.LogInformation("Returned reel with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteReel/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteReel(int id)
+        {
+            _logger.LogInformation("Received DeleteReel request for Id: {Id}", id);
+
+            var reel = await _reelRepo.GetByIdAsync(id);
+            if (reel == null)
+            {
+                _logger.LogWarning("Reel with Id {Id} not found", id);
+                return NotFound("Reel not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _reelRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(reel.CoverImage))
+                    DocumentSettings.DeleteFile(reel.CoverImage, "ReelsCover");
+
+                _reelRepo.Delete(reel);
+                await _reelRepo.SaveChangesAsync();
+
+                _logger.LogInformation("Reel deleted with Id: {ReelId}", reel.Id);
+
+                await _reelRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Reel deleted successfully", ReelId = reel.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reelRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete reel: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the reel: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region CustomerPhoto
+
+        [HttpPost("addCustomerPhoto")]
+        [Authorize]
+        public async Task<ActionResult> AddCustomerPhoto([FromForm] CustomerPhotoDto photoDto)
+        {
+            _logger.LogInformation("Received AddCustomerPhoto request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string image = string.Empty;
+
+            using var transaction = await _customerPhotoRepo.BeginTransactionAsync();
+            try
+            {
+                image = DocumentSettings.UploadFile(photoDto.Image, "CustomerPhotos");
+                if (string.IsNullOrEmpty(image))
+                    return BadRequest("Failed to upload image");
+
+                var photo = new CustomerPhoto
+                {
+                    Image = image
+                };
+
+                await _customerPhotoRepo.AddAsync(photo);
+                await _customerPhotoRepo.SaveChangesAsync();
+
+                if (photo.Id == 0)
+                {
+                    _logger.LogError("Failed to generate CustomerPhoto Id");
+                    throw new InvalidOperationException("Failed to generate CustomerPhoto Id");
+                }
+
+                _logger.LogInformation("CustomerPhoto created with Id: {CustomerPhotoId}", photo.Id);
+
+                await _customerPhotoRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Customer photo created successfully", CustomerPhotoId = photo.Id });
+            }
+            catch (Exception ex)
+            {
+                await _customerPhotoRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(image))
+                    DocumentSettings.DeleteFile(image, "CustomerPhotos");
+
+                _logger.LogError(ex, "Failed to create customer photo: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the customer photo: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateCustomerPhoto/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateCustomerPhoto(int id, [FromForm] UpdateCustomerPhotoDto photoDto)
+        {
+            _logger.LogInformation("Received UpdateCustomerPhoto request for Id: {Id}", id);
+
+            var photo = await _customerPhotoRepo.GetByIdAsync(id);
+            if (photo == null)
+            {
+                _logger.LogWarning("CustomerPhoto with Id {Id} not found", id);
+                return NotFound("Customer photo not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string image = photo.Image ?? string.Empty;
+
+            using var transaction = await _customerPhotoRepo.BeginTransactionAsync();
+            try
+            {
+                if (photoDto.Image != null)
+                {
+                    if (!string.IsNullOrEmpty(image))
+                        DocumentSettings.DeleteFile(image, "CustomerPhotos");
+                    image = DocumentSettings.UploadFile(photoDto.Image, "CustomerPhotos");
+                    if (string.IsNullOrEmpty(image))
+                        return BadRequest("Failed to upload image");
+                }
+
+                photo.Image = image;
+
+                _customerPhotoRepo.Update(photo);
+                await _customerPhotoRepo.SaveChangesAsync();
+
+                _logger.LogInformation("CustomerPhoto updated with Id: {CustomerPhotoId}", photo.Id);
+
+                await _customerPhotoRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Customer photo updated successfully", CustomerPhotoId = photo.Id });
+            }
+            catch (Exception ex)
+            {
+                await _customerPhotoRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(image) && photoDto.Image != null)
+                    DocumentSettings.DeleteFile(image, "CustomerPhotos");
+
+                _logger.LogError(ex, "Failed to update customer photo: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the customer photo: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllCustomerPhotos")]
+        [Authorize]
+        public async Task<ActionResult<List<CustomerPhotoReturnedDto>>> GetAllCustomerPhotos()
+        {
+            _logger.LogInformation("Received GetAllCustomerPhotos request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var photos = await _customerPhotoRepo.GetAllAsync();
+            var result = _mapper.Map<List<CustomerPhotoReturnedDto>>(photos);
+
+            _logger.LogInformation("Returned {Count} customer photos", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getCustomerPhotoById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<CustomerPhotoReturnedDto>> GetCustomerPhotoById(int id)
+        {
+            _logger.LogInformation("Received GetCustomerPhotoById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var photo = await _customerPhotoRepo.GetByIdAsync(id);
+            if (photo == null)
+            {
+                _logger.LogWarning("CustomerPhoto with Id {Id} not found", id);
+                return NotFound("Customer photo not found");
+            }
+
+            var result = _mapper.Map<CustomerPhotoReturnedDto>(photo);
+
+            _logger.LogInformation("Returned customer photo with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteCustomerPhoto/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteCustomerPhoto(int id)
+        {
+            _logger.LogInformation("Received DeleteCustomerPhoto request for Id: {Id}", id);
+
+            var photo = await _customerPhotoRepo.GetByIdAsync(id);
+            if (photo == null)
+            {
+                _logger.LogWarning("CustomerPhoto with Id {Id} not found", id);
+                return NotFound("Customer photo not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _customerPhotoRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(photo.Image))
+                    DocumentSettings.DeleteFile(photo.Image, "CustomerPhotos");
+
+                _customerPhotoRepo.Delete(photo);
+                await _customerPhotoRepo.SaveChangesAsync();
+
+                _logger.LogInformation("CustomerPhoto deleted with Id: {CustomerPhotoId}", photo.Id);
+
+                await _customerPhotoRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Customer photo deleted successfully", CustomerPhotoId = photo.Id });
+            }
+            catch (Exception ex)
+            {
+                await _customerPhotoRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete customer photo: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the customer photo: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region ReviewsSettings
+
+        [HttpPost("addOrUpdateReviewsSettings")]
+        [Authorize]
+        public async Task<ActionResult> AddOrUpdateReviewsSettings([FromForm] ReviewsSettingsDto settingsDto)
+        {
+            _logger.LogInformation("Received AddOrUpdateReviewsSettings request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            using var transaction = await _reviewsSettingsRepo.BeginTransactionAsync();
+            var uploadedImage = string.Empty;
+            try
+            {
+                var settings = (await _reviewsSettingsRepo.GetAllAsync()).FirstOrDefault();
+                var previousImage = settings?.Image;
+
+                if (settingsDto.Image != null)
+                {
+                    uploadedImage = DocumentSettings.UploadFile(settingsDto.Image, "ReviewsSettings");
+                    if (string.IsNullOrEmpty(uploadedImage))
+                        return BadRequest("Failed to upload image");
+                }
+
+                if (settings == null)
+                {
+                    settings = new ReviewsSettings
+                    {
+                        Title = settingsDto.Title.Trim(),
+                        Description = settingsDto.Description.Trim(),
+                        YoutubeChannelLink = settingsDto.YoutubeChannelLink.Trim(),
+                        Image = uploadedImage
+                    };
+                    await _reviewsSettingsRepo.AddAsync(settings);
+                }
+                else
+                {
+                    settings.Title = settingsDto.Title.Trim();
+                    settings.Description = settingsDto.Description.Trim();
+                    settings.YoutubeChannelLink = settingsDto.YoutubeChannelLink.Trim();
+                    if (!string.IsNullOrEmpty(uploadedImage))
+                        settings.Image = uploadedImage;
+                    _reviewsSettingsRepo.Update(settings);
+                }
+
+                await _reviewsSettingsRepo.SaveChangesAsync();
+
+                if (!string.IsNullOrEmpty(uploadedImage) && !string.IsNullOrEmpty(previousImage))
+                    DocumentSettings.DeleteFile(previousImage, "ReviewsSettings");
+
+                _logger.LogInformation("ReviewsSettings saved with Id: {ReviewsSettingsId}", settings.Id);
+
+                await _reviewsSettingsRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Reviews settings saved successfully", ReviewsSettingsId = settings.Id });
+            }
+            catch (Exception ex)
+            {
+                await _reviewsSettingsRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(uploadedImage))
+                    DocumentSettings.DeleteFile(uploadedImage, "ReviewsSettings");
+
+                _logger.LogError(ex, "Failed to save reviews settings: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while saving reviews settings: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getReviewsSettings")]
+        [Authorize]
+        public async Task<ActionResult<ReviewsSettingsReturnedDto>> GetReviewsSettings()
+        {
+            _logger.LogInformation("Received GetReviewsSettings request");
+
+            var settings = (await _reviewsSettingsRepo.GetAllAsync()).FirstOrDefault();
+            if (settings == null)
+                return NotFound("Reviews settings have not been set up yet");
+
+            var result = _mapper.Map<ReviewsSettingsReturnedDto>(settings);
+            return Ok(result);
+        }
+
+        #endregion
+
+        #endregion
+
+        #region SocialMediaLink
+
+        [HttpPost("addSocialMediaLink")]
+        [Authorize]
+        public async Task<ActionResult> AddSocialMediaLink([FromForm] SocialMediaLinkDto socialMediaLinkDto)
+        {
+            _logger.LogInformation("Received AddSocialMediaLink request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string icon = string.Empty;
+
+            using var transaction = await _socialMediaLinkRepo.BeginTransactionAsync();
+            try
+            {
+                if (socialMediaLinkDto.Icon != null)
+                {
+                    icon = DocumentSettings.UploadFile(socialMediaLinkDto.Icon, "SocialMediaLinksIcon");
+                    if (string.IsNullOrEmpty(icon))
+                        return BadRequest("Failed to upload icon");
+                }
+
+                var socialMediaLink = new SocialMediaLink
+                {
+                    Title = socialMediaLinkDto.Title?.Trim(),
+                    Link = socialMediaLinkDto.Link?.Trim(),
+                    Icon = icon
+                };
+
+                await _socialMediaLinkRepo.AddAsync(socialMediaLink);
+                await _socialMediaLinkRepo.SaveChangesAsync();
+
+                if (socialMediaLink.Id == 0)
+                {
+                    _logger.LogError("Failed to generate SocialMediaLink Id");
+                    throw new InvalidOperationException("Failed to generate SocialMediaLink Id");
+                }
+
+                _logger.LogInformation("SocialMediaLink created with Id: {SocialMediaLinkId}", socialMediaLink.Id);
+
+                await _socialMediaLinkRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Social media link created successfully", SocialMediaLinkId = socialMediaLink.Id });
+            }
+            catch (Exception ex)
+            {
+                await _socialMediaLinkRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(icon))
+                    DocumentSettings.DeleteFile(icon, "SocialMediaLinksIcon");
+
+                _logger.LogError(ex, "Failed to create social media link: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the social media link: {ex.Message}");
+            }
+        }
+
+        [HttpPut("updateSocialMediaLink/{id}")]
+        [Authorize]
+        public async Task<ActionResult> UpdateSocialMediaLink(int id, [FromForm] UpdateSocialMediaLinkDto socialMediaLinkDto)
+        {
+            _logger.LogInformation("Received UpdateSocialMediaLink request for Id: {Id}", id);
+
+            var socialMediaLink = await _socialMediaLinkRepo.GetByIdAsync(id);
+            if (socialMediaLink == null)
+            {
+                _logger.LogWarning("SocialMediaLink with Id {Id} not found", id);
+                return NotFound("Social media link not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            string icon = socialMediaLink.Icon ?? string.Empty;
+
+            using var transaction = await _socialMediaLinkRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(socialMediaLinkDto.Title))
+                    socialMediaLink.Title = socialMediaLinkDto.Title.Trim();
+                if (!string.IsNullOrWhiteSpace(socialMediaLinkDto.Link))
+                    socialMediaLink.Link = socialMediaLinkDto.Link.Trim();
+
+                if (socialMediaLinkDto.Icon != null)
+                {
+                    if (!string.IsNullOrEmpty(icon))
+                        DocumentSettings.DeleteFile(icon, "SocialMediaLinksIcon");
+                    icon = DocumentSettings.UploadFile(socialMediaLinkDto.Icon, "SocialMediaLinksIcon");
+                    if (string.IsNullOrEmpty(icon))
+                        return BadRequest("Failed to upload icon");
+                }
+
+                socialMediaLink.Icon = icon;
+
+                _socialMediaLinkRepo.Update(socialMediaLink);
+                await _socialMediaLinkRepo.SaveChangesAsync();
+
+                _logger.LogInformation("SocialMediaLink updated with Id: {SocialMediaLinkId}", socialMediaLink.Id);
+
+                await _socialMediaLinkRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Social media link updated successfully", SocialMediaLinkId = socialMediaLink.Id });
+            }
+            catch (Exception ex)
+            {
+                await _socialMediaLinkRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(icon) && socialMediaLinkDto.Icon != null)
+                    DocumentSettings.DeleteFile(icon, "SocialMediaLinksIcon");
+
+                _logger.LogError(ex, "Failed to update social media link: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while updating the social media link: {ex.Message}");
+            }
+        }
+
+        [HttpGet("getAllSocialMediaLinks")]
+        [Authorize]
+        public async Task<ActionResult<List<SocialMediaLinkReturnedDto>>> GetAllSocialMediaLinks()
+        {
+            _logger.LogInformation("Received GetAllSocialMediaLinks request");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var socialMediaLinks = await _socialMediaLinkRepo.GetAllAsync();
+            var result = _mapper.Map<List<SocialMediaLinkReturnedDto>>(socialMediaLinks);
+
+            _logger.LogInformation("Returned {Count} social media links", result.Count);
+            return Ok(result);
+        }
+
+        [HttpGet("getSocialMediaLinkById/{id}")]
+        [Authorize]
+        public async Task<ActionResult<SocialMediaLinkReturnedDto>> GetSocialMediaLinkById(int id)
+        {
+            _logger.LogInformation("Received GetSocialMediaLinkById request for Id: {Id}", id);
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            var socialMediaLink = await _socialMediaLinkRepo.GetByIdAsync(id);
+            if (socialMediaLink == null)
+            {
+                _logger.LogWarning("SocialMediaLink with Id {Id} not found", id);
+                return NotFound("Social media link not found");
+            }
+
+            var result = _mapper.Map<SocialMediaLinkReturnedDto>(socialMediaLink);
+
+            _logger.LogInformation("Returned social media link with Id: {Id}", id);
+            return Ok(result);
+        }
+
+        [HttpDelete("deleteSocialMediaLink/{id}")]
+        [Authorize]
+        public async Task<ActionResult> DeleteSocialMediaLink(int id)
+        {
+            _logger.LogInformation("Received DeleteSocialMediaLink request for Id: {Id}", id);
+
+            var socialMediaLink = await _socialMediaLinkRepo.GetByIdAsync(id);
+            if (socialMediaLink == null)
+            {
+                _logger.LogWarning("SocialMediaLink with Id {Id} not found", id);
+                return NotFound("Social media link not found");
+            }
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            using var transaction = await _socialMediaLinkRepo.BeginTransactionAsync();
+            try
+            {
+                if (!string.IsNullOrEmpty(socialMediaLink.Icon))
+                    DocumentSettings.DeleteFile(socialMediaLink.Icon, "SocialMediaLinksIcon");
+
+                _socialMediaLinkRepo.Delete(socialMediaLink);
+                await _socialMediaLinkRepo.SaveChangesAsync();
+
+                _logger.LogInformation("SocialMediaLink deleted with Id: {SocialMediaLinkId}", socialMediaLink.Id);
+
+                await _socialMediaLinkRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Social media link deleted successfully", SocialMediaLinkId = socialMediaLink.Id });
+            }
+            catch (Exception ex)
+            {
+                await _socialMediaLinkRepo.RollbackAsync(transaction);
+                _logger.LogError(ex, "Failed to delete social media link: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while deleting the social media link: {ex.Message}");
             }
         }
 

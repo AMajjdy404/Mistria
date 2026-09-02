@@ -1,11 +1,10 @@
 namespace Mistria.API.Dtos
 {
-    public class TravelProgramSummaryDto
+    public class ReelReturnedDto
     {
         public int Id { get; set; }
         public string Title { get; set; }
+        public string IframeLink { get; set; }
         public string CoverImage { get; set; }
-        public string Location { get; set; }
-        public decimal? StartingFromPrice { get; set; }
     }
 }
