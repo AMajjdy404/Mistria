@@ -1,0 +1,4166 @@
+{
+  "info": {
+    "name": "Mistria API",
+    "description": "Full endpoint collection for the Mistria travel platform API.\n\nAuth: call \"Auth & Users > Login\" first - its test script auto-saves the JWT into the {{token}} collection variable, which every authenticated request sends as `Authorization: Bearer {{token}}` (set at the collection level). Requests under \"Website (Public)\" and a few others (Login, Forgot/Reset Password, Logout, Dashboard Statistics) override this with no auth.\n\nBase URL: set the {{baseUrl}} collection variable to your environment (e.g. http://localhost:5000 for local dev, or the deployed API URL). Do not commit real credentials into this collection - the Login body uses a placeholder password.\n\nFile uploads: form-data \"file\" fields are left empty (`src: []`) - attach a real file in the Postman UI before sending. For multi-file/multi-value fields (Images, Included, Excluded, ItineraryDayImages, ...), add more rows with the same key.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth & Users",
+      "item": [
+        {
+          "name": "Login",
+          "id": "req-1",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "login"
+              ]
+            },
+            "description": "Public. On success, the response contains a JWT `token` field. The test script below auto-saves it into the {{token}} collection variable used by every authenticated request.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@travel.com\",\n  \"password\": \"REPLACE_WITH_PASSWORD\",\n  \"rememberMe\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const json = pm.response.json();",
+                  "    if (json.token) {",
+                  "        pm.collectionVariables.set('token', json.token);",
+                  "        console.log('Saved token to {{token}}');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Add User (Admin)",
+          "id": "req-2",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addUser",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addUser"
+              ]
+            },
+            "description": "Requires a valid token. Creates a new dashboard admin user (role \"Admin\").",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newadmin@example.com\",\n  \"password\": \"P@ssw0rd123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Users",
+          "id": "req-3",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllUsers",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllUsers"
+              ]
+            },
+            "description": "Requires the \"Admin\" role."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "id": "req-4",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteUser/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteUser",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "id": "req-5",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/forgotpasswordOwner",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "forgotpasswordOwner"
+              ]
+            },
+            "description": "Public. Sends a password reset code by email.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@travel.com\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "id": "req-6",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/resetpasswordOwner",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "resetpasswordOwner"
+              ]
+            },
+            "description": "Public.",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@travel.com\",\n  \"code\": \"CODE_FROM_EMAIL\",\n  \"newPassword\": \"NewP@ssw0rd123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "id": "req-7",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "logout"
+              ]
+            },
+            "description": "No [Authorize] attribute on this route, but call it while logged in to clear the auth cookie."
+          },
+          "response": []
+        }
+      ],
+      "description": "Login, user management, and password recovery (DashboardController \"User\" region)."
+    },
+    {
+      "name": "Travel Programs (Dashboard)",
+      "item": [
+        {
+          "name": "Add Program",
+          "id": "req-8",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addProgram",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addProgram"
+              ]
+            },
+            "description": "No [Authorize] attribute, but the handler manually requires a valid token (reads the email claim) so send the Bearer token anyway.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Cairo, Luxor & Aswan Explorer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A 6-day tour covering Cairo, Luxor and Aswan.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Location",
+                  "value": "Cairo, Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "LocationUrl",
+                  "value": "https://maps.google.com/?q=Cairo",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat this key for each gallery image."
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat this key for each gallery image."
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Included",
+                  "value": "Accommodations in 5* Hotels",
+                  "type": "text",
+                  "description": "Repeat this key for each included item."
+                },
+                {
+                  "key": "Included",
+                  "value": "Domestic flights",
+                  "type": "text",
+                  "description": "Repeat this key for each included item."
+                },
+                {
+                  "key": "Excluded",
+                  "value": "International airfare",
+                  "type": "text",
+                  "description": "Repeat this key for each excluded item."
+                },
+                {
+                  "key": "Excluded",
+                  "value": "Egypt entry visa",
+                  "type": "text",
+                  "description": "Repeat this key for each excluded item."
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\",\n        \"type\": \"meal\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\",\n        \"type\": \"overnight\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of day objects. See collection docs."
+                },
+                {
+                  "key": "ItineraryDayImages",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional. Nth file maps to ItineraryDayImageIndexes[N]."
+                },
+                {
+                  "key": "ItineraryDayImageIndexes",
+                  "value": "0",
+                  "type": "text",
+                  "description": "Optional. Repeat alongside ItineraryDayImages, one index per file."
+                },
+                {
+                  "key": "PricingTiersJson",
+                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"9-16 Pax\",\n            \"pricePerPerson\": 1245\n          },\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 1305\n          },\n          {\n            \"groupSizeLabel\": \"2-4 Pax\",\n            \"pricePerPerson\": 1615\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 2500\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of pricing tier objects. See collection docs."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Program",
+          "id": "req-9",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateProgram/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateProgram",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional; only send what changes. Same auth quirk as Add Program.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Cairo, Luxor & Aswan Explorer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A 6-day tour covering Cairo, Luxor and Aswan.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Location",
+                  "value": "Cairo, Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "LocationUrl",
+                  "value": "https://maps.google.com/?q=Cairo",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat this key for each gallery image."
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat this key for each gallery image."
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Included",
+                  "value": "Accommodations in 5* Hotels",
+                  "type": "text",
+                  "description": "Repeat this key for each included item."
+                },
+                {
+                  "key": "Included",
+                  "value": "Domestic flights",
+                  "type": "text",
+                  "description": "Repeat this key for each included item."
+                },
+                {
+                  "key": "Excluded",
+                  "value": "International airfare",
+                  "type": "text",
+                  "description": "Repeat this key for each excluded item."
+                },
+                {
+                  "key": "Excluded",
+                  "value": "Egypt entry visa",
+                  "type": "text",
+                  "description": "Repeat this key for each excluded item."
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\",\n        \"type\": \"meal\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\",\n        \"type\": \"overnight\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of day objects. See collection docs."
+                },
+                {
+                  "key": "ItineraryDayImages",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional. Nth file maps to ItineraryDayImageIndexes[N]."
+                },
+                {
+                  "key": "ItineraryDayImageIndexes",
+                  "value": "0",
+                  "type": "text",
+                  "description": "Optional. Repeat alongside ItineraryDayImages, one index per file."
+                },
+                {
+                  "key": "PricingTiersJson",
+                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"9-16 Pax\",\n            \"pricePerPerson\": 1245\n          },\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 1305\n          },\n          {\n            \"groupSizeLabel\": \"2-4 Pax\",\n            \"pricePerPerson\": 1615\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 2500\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of pricing tier objects. See collection docs."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Program",
+          "id": "req-10",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteProgram/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteProgram",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Programs",
+          "id": "req-11",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllPrograms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllPrograms"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Program By Id",
+          "id": "req-12",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getProgramById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getProgramById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "Itinerary is a JSON array of day objects (title, description, image, events[], meals[], accommodation). Pricing is a JSON array of tiers, each with date ranges and group-size price brackets. StartingFromPrice returned by GET is computed automatically from PricingTiers."
+    },
+    {
+      "name": "Destinations (Dashboard)",
+      "item": [
+        {
+          "name": "Add Destination",
+          "id": "req-13",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addDestination",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addDestination"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Alexandria Day Trip",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A full day exploring Alexandria from Cairo.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Location",
+                  "value": "Alexandria, Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "LocationUrl",
+                  "value": "https://maps.google.com/?q=Alexandria",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Included",
+                  "value": "Private transfer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "PricePerPerson",
+                  "value": "85",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "{\n  \"Day 1\": \"Arrival and city tour.\",\n  \"Day 2\": \"Free day at leisure.\"\n}",
+                  "type": "text",
+                  "description": "JSON object of \"Day X\" -> description text."
+                },
+                {
+                  "key": "City",
+                  "value": "Alexandria",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Destination",
+          "id": "req-14",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateDestination/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateDestination",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Alexandria Day Trip",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A full day exploring Alexandria from Cairo.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Location",
+                  "value": "Alexandria, Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "LocationUrl",
+                  "value": "https://maps.google.com/?q=Alexandria",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Included",
+                  "value": "Private transfer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "PricePerPerson",
+                  "value": "85",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "{\n  \"Day 1\": \"Arrival and city tour.\",\n  \"Day 2\": \"Free day at leisure.\"\n}",
+                  "type": "text",
+                  "description": "JSON object of \"Day X\" -> description text."
+                },
+                {
+                  "key": "City",
+                  "value": "Alexandria",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Destinations",
+          "id": "req-15",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllDestinations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllDestinations"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Destination By Id",
+          "id": "req-16",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getDestinationById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getDestinationById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Destination",
+          "id": "req-17",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteDestination/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteDestination",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "Formerly \"DayTrip\" - renamed to Destination. Itinerary here is a simple JSON object (day label -> text), unlike the richer Travel Program itinerary."
+    },
+    {
+      "name": "Weddings (Dashboard)",
+      "item": [
+        {
+          "name": "Add Wedding",
+          "id": "req-18",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addWedding",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addWedding"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Beach Wedding Package",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A romantic beachside wedding package.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Wedding",
+          "id": "req-19",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateWedding/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateWedding",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Beach Wedding Package",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated description.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Weddings",
+          "id": "req-20",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllWeddings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllWeddings"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Wedding By Id",
+          "id": "req-21",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getWeddingById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getWeddingById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Wedding",
+          "id": "req-22",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteWedding/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteWedding",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Events (Dashboard)",
+      "item": [
+        {
+          "name": "Add Event",
+          "id": "req-23",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addEvent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addEvent"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "New Year Nile Cruise",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Celebrate New Year on a Nile cruise.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Event",
+          "id": "req-24",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateEvent/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateEvent",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "New Year Nile Cruise",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated description.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Events",
+          "id": "req-25",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllEvents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllEvents"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event By Id",
+          "id": "req-26",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getEventById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getEventById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Event",
+          "id": "req-27",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteEvent/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteEvent",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Activities (Dashboard)",
+      "item": [
+        {
+          "name": "Add Activity",
+          "id": "req-28",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addActivity",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addActivity"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Hot Air Balloon Ride",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Sunrise balloon ride over Luxor.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Price",
+                  "value": "150",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Activity",
+          "id": "req-29",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateActivity/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateActivity",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Hot Air Balloon Ride",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated description.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Price",
+                  "value": "160",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Activities",
+          "id": "req-30",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllActivities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllActivities"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Activity By Id",
+          "id": "req-31",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getActivityById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getActivityById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Activity",
+          "id": "req-32",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteActivity/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteActivity",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Services (Dashboard)",
+      "item": [
+        {
+          "name": "Add Service",
+          "id": "req-33",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addService",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addService"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Airport VIP Transfer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Private VIP transfer service.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Price",
+                  "value": "60",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Service",
+          "id": "req-34",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateService/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateService",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Airport VIP Transfer",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated description.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "Price",
+                  "value": "65",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Services",
+          "id": "req-35",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllServices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllServices"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Service By Id",
+          "id": "req-36",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getServiceById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getServiceById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Service",
+          "id": "req-37",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteService/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteService",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "About Us (Dashboard)",
+      "item": [
+        {
+          "name": "Add / Update About Us",
+          "id": "req-38",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addOrUpdateAboutUs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addOrUpdateAboutUs"
+              ]
+            },
+            "description": "Upsert: creates the single row if none exists yet, otherwise updates it.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"mainDescription\": \"Your Premier Destination Management Leader Since 1987.\",\n  \"ourStory\": \"For over three decades, Egypt Tours Portal has stood as a premier global leader...\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get About Us",
+          "id": "req-39",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAboutUs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAboutUs"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Founders (Dashboard)",
+      "item": [
+        {
+          "name": "Add Founder",
+          "id": "req-40",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addFounder",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addFounder"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "John Doe - CEO & Founder",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "John has led the company since 1987.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Founder",
+          "id": "req-41",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateFounder/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateFounder",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "John Doe - CEO & Founder",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated bio.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Founders",
+          "id": "req-42",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllFounders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllFounders"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Founder By Id",
+          "id": "req-43",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getFounderById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getFounderById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Founder",
+          "id": "req-44",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteFounder/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteFounder",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Blog (Dashboard)",
+      "item": [
+        {
+          "name": "Add Blog",
+          "id": "req-45",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addBlog",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addBlog"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Top 10 Places to Visit in Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "A roundup of must-see Egyptian landmarks.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Blog",
+          "id": "req-46",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateBlog/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateBlog",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Top 10 Places to Visit in Egypt",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Updated intro.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Blogs",
+          "id": "req-47",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllBlogs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllBlogs"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog By Id",
+          "id": "req-48",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getBlogById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getBlogById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Blog",
+          "id": "req-49",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteBlog/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteBlog",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Also deletes every BlogSub under this blog, including their images."
+          },
+          "response": []
+        }
+      ],
+      "description": "A Blog is the outer post (image, title, description). Each Blog can have multiple BlogSub sections underneath."
+    },
+    {
+      "name": "Blog Sub (Dashboard)",
+      "item": [
+        {
+          "name": "Add Blog Sub",
+          "id": "req-50",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addBlogSub",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addBlogSub"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "BlogId",
+                  "value": "1",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Title",
+                  "value": "Frequently Asked Questions",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "ContentJson",
+                  "value": "{\n  \"What is included?\": \"Everything listed in the Included section.\",\n  \"Can I cancel?\": \"Yes, up to 48 hours before the trip.\"\n}",
+                  "type": "text",
+                  "description": "JSON object of key/value pairs (e.g. question -> answer)."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Blog Sub",
+          "id": "req-51",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateBlogSub/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateBlogSub",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Frequently Asked Questions",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                },
+                {
+                  "key": "ContentJson",
+                  "value": "{\n  \"What is included?\": \"Everything listed in the Included section.\",\n  \"Can I cancel?\": \"Yes, up to 48 hours before the trip.\"\n}",
+                  "type": "text",
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Blog Subs",
+          "id": "req-52",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllBlogSubs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllBlogSubs"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog Sub By Id",
+          "id": "req-53",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getBlogSubById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getBlogSubById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog Subs By Blog Id",
+          "id": "req-54",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getBlogSubsByBlogId/:blogId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getBlogSubsByBlogId",
+                ":blogId"
+              ],
+              "variable": [
+                {
+                  "key": "blogId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Blog Sub",
+          "id": "req-55",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteBlogSub/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteBlogSub",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Payment Methods (Dashboard)",
+      "item": [
+        {
+          "name": "Add Payment Method",
+          "id": "req-56",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addPaymentMethod",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addPaymentMethod"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Visa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Payment Method",
+          "id": "req-57",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updatePaymentMethod/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updatePaymentMethod",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mastercard\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Payment Methods",
+          "id": "req-58",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllPaymentMethods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllPaymentMethods"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Payment Method By Id",
+          "id": "req-59",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getPaymentMethodById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getPaymentMethodById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Payment Method",
+          "id": "req-60",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deletePaymentMethod/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deletePaymentMethod",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "The chosen payment method name is also included as an optional field on the public \"Send Contact Email\" request."
+    },
+    {
+      "name": "Reviews (Dashboard)",
+      "item": [
+        {
+          "name": "Add Review",
+          "id": "req-61",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addReview",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addReview"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Jeff T",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Country",
+                  "value": "United States",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Rating",
+                  "value": "5",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Comment",
+                  "value": "Our trip in May 2026 was fantastic! We saw all the major wonders of Egypt!",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ReviewLink",
+                  "value": "https://www.tripadvisor.com/ShowUserReviews-example",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Review",
+          "id": "req-62",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateReview/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateReview",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Jeff T",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Country",
+                  "value": "United States",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Rating",
+                  "value": "5",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Comment",
+                  "value": "Our trip in May 2026 was fantastic! We saw all the major wonders of Egypt!",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ReviewLink",
+                  "value": "https://www.tripadvisor.com/ShowUserReviews-example",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reviews",
+          "id": "req-63",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllReviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllReviews"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review By Id",
+          "id": "req-64",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getReviewById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getReviewById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review",
+          "id": "req-65",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteReview/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteReview",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Review Platforms (Dashboard)",
+      "item": [
+        {
+          "name": "Add Review Platform",
+          "id": "req-66",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addReviewPlatform",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addReviewPlatform"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Tripadvisor",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ReviewsCountLabel",
+                  "value": "5,425+ reviews",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Link",
+                  "value": "https://www.tripadvisor.com/example-company-page",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Icon",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Review Platform",
+          "id": "req-67",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateReviewPlatform/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateReviewPlatform",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Name",
+                  "value": "Tripadvisor",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "ReviewsCountLabel",
+                  "value": "5,425+ reviews",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Link",
+                  "value": "https://www.tripadvisor.com/example-company-page",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Icon",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Review Platforms",
+          "id": "req-68",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllReviewPlatforms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllReviewPlatforms"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Review Platform By Id",
+          "id": "req-69",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getReviewPlatformById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getReviewPlatformById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Review Platform",
+          "id": "req-70",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteReviewPlatform/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteReviewPlatform",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "The badges shown at the top of the reviews page (Tripadvisor, Google, Trustpilot, WeTravel, ...)."
+    },
+    {
+      "name": "Reels / Video Reviews (Dashboard)",
+      "item": [
+        {
+          "name": "Add Reel",
+          "id": "req-71",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addReel",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addReel"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "A Great Holiday Review About Egypt Tours",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "IframeLink",
+                  "value": "https://www.youtube.com/embed/VIDEO_ID",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional thumbnail."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reel",
+          "id": "req-72",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateReel/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateReel",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "A Great Holiday Review About Egypt Tours",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "IframeLink",
+                  "value": "https://www.youtube.com/embed/VIDEO_ID",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "CoverImage",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional thumbnail."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reels",
+          "id": "req-73",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllReels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllReels"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reel By Id",
+          "id": "req-74",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getReelById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getReelById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reel",
+          "id": "req-75",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteReel/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteReel",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Customer Photos (Dashboard)",
+      "item": [
+        {
+          "name": "Add Customer Photo",
+          "id": "req-76",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addCustomerPhoto",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addCustomerPhoto"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Image",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Customer Photo",
+          "id": "req-77",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateCustomerPhoto/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateCustomerPhoto",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Image",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Customer Photos",
+          "id": "req-78",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllCustomerPhotos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllCustomerPhotos"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Customer Photo By Id",
+          "id": "req-79",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getCustomerPhotoById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getCustomerPhotoById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Customer Photo",
+          "id": "req-80",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteCustomerPhoto/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteCustomerPhoto",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "\"Moments with Our Customers\" gallery."
+    },
+    {
+      "name": "Reviews Page Settings (Dashboard)",
+      "item": [
+        {
+          "name": "Add / Update Reviews Settings",
+          "id": "req-81",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addOrUpdateReviewsSettings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addOrUpdateReviewsSettings"
+              ]
+            },
+            "description": "Upsert: creates the single settings row if none exists yet, otherwise updates it.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Read the Heartfelt Reviews of Our Esteemed Clients",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Description",
+                  "value": "Real feedback from real travelers who booked with us.",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "YoutubeChannelLink",
+                  "value": "https://www.youtube.com/channel/EXAMPLE",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Image",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional."
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reviews Settings",
+          "id": "req-82",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getReviewsSettings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getReviewsSettings"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": "Intro block (title/description/image) plus the YouTube channel link shown above the video reviews section."
+    },
+    {
+      "name": "Social Media Links (Dashboard)",
+      "item": [
+        {
+          "name": "Add Social Media Link",
+          "id": "req-83",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/addSocialMediaLink",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "addSocialMediaLink"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Facebook",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Link",
+                  "value": "https://www.facebook.com/example",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Icon",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Social Media Link",
+          "id": "req-84",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/updateSocialMediaLink/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "updateSocialMediaLink",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "All fields optional.",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "Title",
+                  "value": "Facebook",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Link",
+                  "value": "https://www.facebook.com/example",
+                  "type": "text",
+                  "description": ""
+                },
+                {
+                  "key": "Icon",
+                  "type": "file",
+                  "src": [],
+                  "description": ""
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Social Media Links",
+          "id": "req-85",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAllSocialMediaLinks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAllSocialMediaLinks"
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Social Media Link By Id",
+          "id": "req-86",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getSocialMediaLinkById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getSocialMediaLinkById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Social Media Link",
+          "id": "req-87",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/deleteSocialMediaLink/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "deleteSocialMediaLink",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Dashboard Statistics",
+      "item": [
+        {
+          "name": "Get Statistics",
+          "id": "req-88",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/statistics",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "statistics"
+              ]
+            },
+            "description": "No [Authorize] attribute on this route in the current API - it is reachable without a token. Flagged here for visibility; ask the backend team before relying on that.",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "name": "Website (Public)",
+      "item": [
+        {
+          "name": "Send Contact Email",
+          "id": "req-89",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/send",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "send"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Jane Traveler\",\n  \"emailAddress\": \"jane@example.com\",\n  \"phone\": \"+1 555 0100\",\n  \"nationality\": \"American\",\n  \"title\": \"Cairo, Luxor & Aswan Explorer\",\n  \"numberOfPeople\": 2,\n  \"message\": \"I'd like a quote for June 2026.\",\n  \"paymentMethod\": \"Visa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Main Program",
+          "id": "req-90",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getMainProgram",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getMainProgram"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Program Summaries",
+          "id": "req-91",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllProgramSummaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllProgramSummaries"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Programs",
+          "id": "req-92",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllPrograms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllPrograms"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Program By Id",
+          "id": "req-93",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getProgramById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getProgramById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Similar Programs",
+          "id": "req-94",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getSimilarPrograms?id=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getSimilarPrograms"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Destinations",
+          "id": "req-95",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllDestinations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllDestinations"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Destination Summaries",
+          "id": "req-96",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getDestinationSummaries",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getDestinationSummaries"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Destination By Id",
+          "id": "req-97",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getDestinationById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getDestinationById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Similar Destinations",
+          "id": "req-98",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getSimilarDestinations?id=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getSimilarDestinations"
+              ],
+              "query": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Destination Cities",
+          "id": "req-99",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllDestinationCities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllDestinationCities"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Destinations By City",
+          "id": "req-100",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getDestinationsByCity?city=Cairo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getDestinationsByCity"
+              ],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "Cairo"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Services",
+          "id": "req-101",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllServices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllServices"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Activities",
+          "id": "req-102",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllActivities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllActivities"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Events",
+          "id": "req-103",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllEvents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllEvents"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Weddings",
+          "id": "req-104",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllWeddings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllWeddings"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get About Us",
+          "id": "req-105",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAboutUs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAboutUs"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Founders",
+          "id": "req-106",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllFounders",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllFounders"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Blogs",
+          "id": "req-107",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllBlogs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllBlogs"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog By Id",
+          "id": "req-108",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getBlogById/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getBlogById",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Blog Subs By Blog Id",
+          "id": "req-109",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getBlogSubsByBlogId/:blogId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getBlogSubsByBlogId",
+                ":blogId"
+              ],
+              "variable": [
+                {
+                  "key": "blogId",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Payment Methods",
+          "id": "req-110",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllPaymentMethods",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllPaymentMethods"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reviews",
+          "id": "req-111",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllReviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllReviews"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Review Platforms",
+          "id": "req-112",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllReviewPlatforms",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllReviewPlatforms"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Reels",
+          "id": "req-113",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllReels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllReels"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Customer Photos",
+          "id": "req-114",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllCustomerPhotos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllCustomerPhotos"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Reviews Settings",
+          "id": "req-115",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getReviewsSettings",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getReviewsSettings"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Social Media Links",
+          "id": "req-116",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getAllSocialMediaLinks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getAllSocialMediaLinks"
+              ]
+            },
+            "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Every route on WebsiteController is public (no [Authorize]) and read-only, except \"Send Contact Email\"."
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
