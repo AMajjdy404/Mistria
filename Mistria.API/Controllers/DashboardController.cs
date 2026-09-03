@@ -2423,6 +2423,125 @@ namespace Mistria.API.Controllers
             }
         }
 
+        [HttpPost("addBlogWithSubs")]
+        [Authorize]
+        public async Task<ActionResult> AddBlogWithSubs([FromForm] BlogWithSubsDto blogDto)
+        {
+            _logger.LogInformation("Received AddBlogWithSubs request. SubsJson: '{Json}'", blogDto.SubsJson ?? "null");
+
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (string.IsNullOrEmpty(email))
+                return Unauthorized("Invalid user data");
+
+            var user = await _userManager.FindByEmailAsync(email);
+            if (user == null)
+                return NotFound("User not found");
+
+            if (!ModelState.IsValid)
+            {
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                _logger.LogWarning("ModelState invalid: {Errors}", string.Join(", ", errors));
+                return BadRequest(ModelState);
+            }
+
+            if (string.IsNullOrWhiteSpace(blogDto.SubsJson))
+                return BadRequest("Subs JSON is required");
+
+            List<BlogSubItemDto> subs;
+            try
+            {
+                subs = JsonSerializer.Deserialize<List<BlogSubItemDto>>(blogDto.SubsJson.Trim(), ProgramJsonOptions) ?? new List<BlogSubItemDto>();
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize subs JSON: {Message} | Raw JSON: {Json}", ex.Message, blogDto.SubsJson);
+                return BadRequest("Invalid subs JSON format. Expected an array of objects, e.g. [{\"title\":\"FAQ\",\"content\":{\"key\":\"value\"}}]");
+            }
+
+            if (subs.Count == 0)
+                return BadRequest("Subs are required and cannot be empty");
+
+            if (subs.Any(s => string.IsNullOrWhiteSpace(s.Title)))
+                return BadRequest("Each sub requires a Title");
+
+            if (subs.Any(s => s.Content == null || s.Content.Count == 0))
+                return BadRequest("Each sub requires non-empty Content");
+
+            if (blogDto.SubImages == null || blogDto.SubImages.Count != subs.Count)
+                return BadRequest("SubImages must be provided, one per sub and in the same order as Subs");
+
+            string cover = string.Empty;
+            var subCoverUrls = new List<string>();
+
+            using var transaction = await _blogRepo.BeginTransactionAsync();
+            try
+            {
+                cover = DocumentSettings.UploadFile(blogDto.CoverImage, "BlogsCover");
+                if (string.IsNullOrEmpty(cover))
+                    return BadRequest("Failed to upload cover image");
+
+                var blog = new Blog
+                {
+                    Title = blogDto.Title?.Trim(),
+                    Description = blogDto.Description?.Trim(),
+                    CoverImage = cover
+                };
+
+                await _blogRepo.AddAsync(blog);
+                await _blogRepo.SaveChangesAsync();
+
+                if (blog.Id == 0)
+                {
+                    _logger.LogError("Failed to generate Blog Id");
+                    throw new InvalidOperationException("Failed to generate Blog Id");
+                }
+
+                var blogSubIds = new List<int>();
+
+                for (int i = 0; i < subs.Count; i++)
+                {
+                    var subCover = DocumentSettings.UploadFile(blogDto.SubImages[i], "BlogSubsCover");
+                    if (string.IsNullOrEmpty(subCover))
+                        return BadRequest($"Failed to upload cover image for sub at index {i}");
+
+                    subCoverUrls.Add(subCover);
+
+                    var blogSub = new BlogSub
+                    {
+                        BlogId = blog.Id,
+                        Title = subs[i].Title.Trim(),
+                        CoverImage = subCover,
+                        Content = subs[i].Content
+                    };
+
+                    await _blogSubRepo.AddAsync(blogSub);
+                    await _blogSubRepo.SaveChangesAsync();
+
+                    blogSubIds.Add(blogSub.Id);
+                }
+
+                _logger.LogInformation("Blog created with Id: {BlogId} and {Count} subs", blog.Id, blogSubIds.Count);
+
+                await _blogRepo.CommitAsync(transaction);
+                return Ok(new { Message = "Blog with subs created successfully", BlogId = blog.Id, BlogSubIds = blogSubIds });
+            }
+            catch (Exception ex)
+            {
+                await _blogRepo.RollbackAsync(transaction);
+
+                if (!string.IsNullOrEmpty(cover))
+                    DocumentSettings.DeleteFile(cover, "BlogsCover");
+
+                foreach (var subCoverUrl in subCoverUrls)
+                {
+                    DocumentSettings.DeleteFile(subCoverUrl, "BlogSubsCover");
+                }
+
+                _logger.LogError(ex, "Failed to create blog with subs: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the blog with subs: {ex.Message}");
+            }
+        }
+
         [HttpPut("updateBlog/{id}")]
         [Authorize]
         public async Task<ActionResult> UpdateBlog(int id, [FromForm] UpdateBlogDto blogDto)
