@@ -4,7 +4,7 @@ namespace Mistria.API.Dtos
 {
     public class CustomerPhotoDto
     {
-        [Required(ErrorMessage = "Image is required")]
-        public IFormFile Image { get; set; }
+        [Required(ErrorMessage = "Images are required")]
+        public List<IFormFile> Images { get; set; }
     }
 }

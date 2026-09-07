@@ -2467,8 +2467,18 @@ namespace Mistria.API.Controllers
             if (subs.Any(s => s.Content == null || s.Content.Count == 0))
                 return BadRequest("Each sub requires non-empty Content");
 
-            if (blogDto.SubImages == null || blogDto.SubImages.Count != subs.Count)
-                return BadRequest("SubImages must be provided, one per sub and in the same order as Subs");
+            var subImages = blogDto.SubImages ?? new List<IFormFile>();
+            if (subImages.Any())
+            {
+                if (blogDto.SubImageIndexes == null || blogDto.SubImageIndexes.Count != subImages.Count)
+                    return BadRequest("SubImageIndexes must be provided and match the number of SubImages");
+
+                if (blogDto.SubImageIndexes.Any(idx => idx < 0 || idx >= subs.Count))
+                    return BadRequest("SubImageIndexes contains an out-of-range index");
+
+                if (blogDto.SubImageIndexes.Distinct().Count() != blogDto.SubImageIndexes.Count)
+                    return BadRequest("SubImageIndexes must not contain duplicate indexes");
+            }
 
             string cover = string.Empty;
             var subCoverUrls = new List<string>();
@@ -2500,11 +2510,16 @@ namespace Mistria.API.Controllers
 
                 for (int i = 0; i < subs.Count; i++)
                 {
-                    var subCover = DocumentSettings.UploadFile(blogDto.SubImages[i], "BlogSubsCover");
-                    if (string.IsNullOrEmpty(subCover))
-                        return BadRequest($"Failed to upload cover image for sub at index {i}");
+                    var subCover = string.Empty;
+                    var imagePos = blogDto.SubImageIndexes?.IndexOf(i) ?? -1;
+                    if (imagePos >= 0)
+                    {
+                        subCover = DocumentSettings.UploadFile(subImages[imagePos], "BlogSubsCover");
+                        if (string.IsNullOrEmpty(subCover))
+                            return BadRequest($"Failed to upload cover image for sub at index {i}");
 
-                    subCoverUrls.Add(subCover);
+                        subCoverUrls.Add(subCover);
+                    }
 
                     var blogSub = new BlogSub
                     {
@@ -3943,43 +3958,57 @@ namespace Mistria.API.Controllers
                 return BadRequest(ModelState);
             }
 
-            string image = string.Empty;
+            if (photoDto.Images == null || !photoDto.Images.Any())
+                return BadRequest("At least one image is required");
+
+            var uploadedImages = new List<string>();
 
             using var transaction = await _customerPhotoRepo.BeginTransactionAsync();
             try
             {
-                image = DocumentSettings.UploadFile(photoDto.Image, "CustomerPhotos");
-                if (string.IsNullOrEmpty(image))
-                    return BadRequest("Failed to upload image");
+                var photoIds = new List<int>();
 
-                var photo = new CustomerPhoto
+                foreach (var image in photoDto.Images)
                 {
-                    Image = image
-                };
+                    var imageUrl = DocumentSettings.UploadFile(image, "CustomerPhotos");
+                    if (string.IsNullOrEmpty(imageUrl))
+                        return BadRequest("Failed to upload one or more images");
 
-                await _customerPhotoRepo.AddAsync(photo);
-                await _customerPhotoRepo.SaveChangesAsync();
+                    uploadedImages.Add(imageUrl);
 
-                if (photo.Id == 0)
-                {
-                    _logger.LogError("Failed to generate CustomerPhoto Id");
-                    throw new InvalidOperationException("Failed to generate CustomerPhoto Id");
+                    var photo = new CustomerPhoto
+                    {
+                        Image = imageUrl
+                    };
+
+                    await _customerPhotoRepo.AddAsync(photo);
+                    await _customerPhotoRepo.SaveChangesAsync();
+
+                    if (photo.Id == 0)
+                    {
+                        _logger.LogError("Failed to generate CustomerPhoto Id");
+                        throw new InvalidOperationException("Failed to generate CustomerPhoto Id");
+                    }
+
+                    photoIds.Add(photo.Id);
                 }
 
-                _logger.LogInformation("CustomerPhoto created with Id: {CustomerPhotoId}", photo.Id);
+                _logger.LogInformation("Created {Count} customer photos with Ids: {Ids}", photoIds.Count, string.Join(", ", photoIds));
 
                 await _customerPhotoRepo.CommitAsync(transaction);
-                return Ok(new { Message = "Customer photo created successfully", CustomerPhotoId = photo.Id });
+                return Ok(new { Message = "Customer photos created successfully", CustomerPhotoIds = photoIds });
             }
             catch (Exception ex)
             {
                 await _customerPhotoRepo.RollbackAsync(transaction);
 
-                if (!string.IsNullOrEmpty(image))
-                    DocumentSettings.DeleteFile(image, "CustomerPhotos");
+                foreach (var imageUrl in uploadedImages)
+                {
+                    DocumentSettings.DeleteFile(imageUrl, "CustomerPhotos");
+                }
 
-                _logger.LogError(ex, "Failed to create customer photo: {Message}", ex.Message);
-                return StatusCode(500, $"An error occurred while creating the customer photo: {ex.Message}");
+                _logger.LogError(ex, "Failed to create customer photos: {Message}", ex.Message);
+                return StatusCode(500, $"An error occurred while creating the customer photos: {ex.Message}");
             }
         }
 

@@ -17,8 +17,12 @@ namespace Mistria.API.Dtos
         [Required(ErrorMessage = "Subs JSON is required")]
         public string SubsJson { get; set; }
 
-        // One cover image per sub, in the same order as the parsed Subs array
-        [Required(ErrorMessage = "Sub images are required")]
-        public List<IFormFile> SubImages { get; set; }
+        // Optional. Any subs not referenced by SubImageIndexes are created with no image.
+        public List<IFormFile>? SubImages { get; set; }
+
+        // Required alongside SubImages: SubImageIndexes[i] is the zero-based index into the
+        // parsed Subs array that SubImages[i] belongs to (e.g. [0, 2] to give sub 0 and sub 2
+        // an image while leaving sub 1 without one).
+        public List<int>? SubImageIndexes { get; set; }
     }
 }

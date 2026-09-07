@@ -1895,7 +1895,7 @@
                 "addBlogWithSubs"
               ]
             },
-            "description": "Convenience endpoint: creates the Blog and all of its initial BlogSub sections in a single atomic request, so the whole post can be written and published in one go. SubImages must have exactly one file per entry in SubsJson, in the same order. Sections created here can still be edited/deleted individually afterwards via the Blog Sub endpoints below.",
+            "description": "Convenience endpoint: creates the Blog and all of its initial BlogSub sections in a single atomic request, so the whole post can be written and published in one go. SubImages/SubImageIndexes are optional and work like ItineraryDayImages on Travel Programs: omit both entirely for subs with no images, or attach only the subs you want an image for - SubImageIndexes[i] says which sub (by position in SubsJson) SubImages[i] belongs to. Any sub whose index is not listed is created with no image (this example gives sub 0 and sub 2 an image while leaving sub 1 without one). Sections created here can still be edited/deleted individually afterwards via the Blog Sub endpoints below.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -1919,21 +1919,33 @@
                 },
                 {
                   "key": "SubsJson",
-                  "value": "[\n  {\n    \"title\": \"Frequently Asked Questions\",\n    \"content\": {\n      \"What is included?\": \"Everything listed in the Included section.\"\n    }\n  },\n  {\n    \"title\": \"Why Book With Us\",\n    \"content\": {\n      \"Local experts\": \"Certified Egyptologist guides on every trip.\"\n    }\n  }\n]",
+                  "value": "[\n  {\n    \"title\": \"Frequently Asked Questions\",\n    \"content\": {\n      \"What is included?\": \"Everything listed in the Included section.\"\n    }\n  },\n  {\n    \"title\": \"Why Book With Us\",\n    \"content\": {\n      \"Local experts\": \"Certified Egyptologist guides on every trip.\"\n    }\n  },\n  {\n    \"title\": \"What Our Travelers Say\",\n    \"content\": {\n      \"Rated 4.9/5\": \"Based on 5,000+ verified reviews.\"\n    }\n  }\n]",
                   "type": "text",
-                  "description": "JSON array of { title, content } - content is a key/value object."
+                  "description": "JSON array of { title, content } - content is a key/value object. This example has 3 subs (index 0, 1, 2)."
                 },
                 {
                   "key": "SubImages",
                   "type": "file",
                   "src": [],
-                  "description": "One file per sub, in the same order as SubsJson."
+                  "description": "Image for the sub at SubImageIndexes[0] (here: sub index 0)."
                 },
                 {
                   "key": "SubImages",
                   "type": "file",
                   "src": [],
-                  "description": "One file per sub, in the same order as SubsJson."
+                  "description": "Image for the sub at SubImageIndexes[1] (here: sub index 2)."
+                },
+                {
+                  "key": "SubImageIndexes",
+                  "value": "0",
+                  "type": "text",
+                  "description": "Sub 0 gets the 1st SubImages file."
+                },
+                {
+                  "key": "SubImageIndexes",
+                  "value": "2",
+                  "type": "text",
+                  "description": "Sub 2 gets the 2nd SubImages file. Sub 1 is left with no image since it is not referenced here."
                 }
               ]
             }
@@ -3029,7 +3041,7 @@
       "name": "Customer Photos (Dashboard)",
       "item": [
         {
-          "name": "Add Customer Photo",
+          "name": "Add Customer Photos",
           "id": "req-77",
           "request": {
             "method": "POST",
@@ -3045,15 +3057,21 @@
                 "addCustomerPhoto"
               ]
             },
-            "description": "",
+            "description": "Uploads one or more images in a single request; each becomes its own CustomerPhoto row (returned as CustomerPhotoIds), so they can still be edited/deleted individually afterwards.",
             "body": {
               "mode": "formdata",
               "formdata": [
                 {
-                  "key": "Image",
+                  "key": "Images",
                   "type": "file",
                   "src": [],
-                  "description": ""
+                  "description": "Repeat this key for each photo - one CustomerPhoto row is created per file."
+                },
+                {
+                  "key": "Images",
+                  "type": "file",
+                  "src": [],
+                  "description": "Repeat this key for each photo - one CustomerPhoto row is created per file."
                 }
               ]
             }
