@@ -10,8 +10,7 @@ namespace Mistria.API.Dtos
         [Required(ErrorMessage = "Title is required")]
         public string Title { get; set; }
 
-        [Required(ErrorMessage = "Cover image is required")]
-        public IFormFile CoverImage { get; set; }
+        public IFormFile? CoverImage { get; set; }
 
         [Required(ErrorMessage = "Content is required")]
         public string ContentJson { get; set; }

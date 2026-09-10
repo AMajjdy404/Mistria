@@ -191,6 +191,16 @@ namespace Mistria.API.Controllers
 
         #region Destination
 
+        [HttpGet("getMainDestinations")]
+        public async Task<ActionResult<IReadOnlyList<DestinationReturnedDto>>> GetMainDestinations()
+        {
+            _logger.LogInformation("Received GetMainDestinations request");
+
+            var destinations = await _destinationRepo.GetAllAsync(d => d.IsMain == true);
+            var result = _mapper.Map<IQueryable<Destination>, IReadOnlyList<DestinationReturnedDto>>(destinations);
+            return Ok(result);
+        }
+
         [HttpGet("getAllDestinations")]
         public async Task<ActionResult<List<DestinationReturnedDto>>> GetAllDestinations()
         {

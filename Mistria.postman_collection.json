@@ -345,7 +345,7 @@
                 },
                 {
                   "key": "ItineraryJson",
-                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\",\n        \"type\": \"meal\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\",\n        \"type\": \"overnight\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
                   "type": "text",
                   "description": "JSON array of day objects. See collection docs."
                 },
@@ -474,7 +474,7 @@
                 },
                 {
                   "key": "ItineraryJson",
-                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\",\n        \"type\": \"meal\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\",\n        \"type\": \"overnight\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival to Cairo\",\n    \"image\": null,\n    \"description\": \"Airport pickup and transfer to your hotel.\",\n    \"events\": [\n      {\n        \"title\": \"Dinner Time\",\n        \"description\": \"Welcome dinner with a Nile view.\"\n      },\n      {\n        \"title\": \"Overnight\",\n        \"description\": \"Overnight stay in Cairo.\"\n      }\n    ],\n    \"meals\": [\n      \"Dinner\"\n    ],\n    \"accommodation\": \"Cairo Hotel\"\n  }\n]",
                   "type": "text",
                   "description": "JSON array of day objects. See collection docs."
                 },
@@ -2103,7 +2103,7 @@
                 "addBlogSub"
               ]
             },
-            "description": "",
+            "description": "CoverImage is optional.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -2123,13 +2123,13 @@
                   "key": "CoverImage",
                   "type": "file",
                   "src": [],
-                  "description": ""
+                  "description": "Optional - omit to create the sub with no image."
                 },
                 {
                   "key": "ContentJson",
                   "value": "{\n  \"What is included?\": \"Everything listed in the Included section.\",\n  \"Can I cancel?\": \"Yes, up to 48 hours before the trip.\"\n}",
                   "type": "text",
-                  "description": "JSON object of key/value pairs (e.g. question -> answer)."
+                  "description": "JSON object of key/value pairs (e.g. question -> answer). Required and cannot be empty."
                 }
               ]
             }
@@ -2160,7 +2160,7 @@
                 }
               ]
             },
-            "description": "All fields optional.",
+            "description": "All fields optional. Omitting CoverImage leaves the current image untouched by default - use RemoveCoverImage=true to explicitly clear it.",
             "body": {
               "mode": "formdata",
               "formdata": [
@@ -2174,7 +2174,13 @@
                   "key": "CoverImage",
                   "type": "file",
                   "src": [],
-                  "description": ""
+                  "description": "Provide a new file to replace the current image."
+                },
+                {
+                  "key": "RemoveCoverImage",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Set to true (with no CoverImage) to clear the existing image instead of replacing it. Ignored if CoverImage is provided."
                 },
                 {
                   "key": "ContentJson",
@@ -3657,8 +3663,32 @@
           "response": []
         },
         {
-          "name": "Get All Destinations",
+          "name": "Get Main Destinations",
           "id": "req-96",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getMainDestinations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getMainDestinations"
+              ]
+            },
+            "description": "Destinations with IsMain=true (the \"Feature this destination on the homepage\" toggle in the dashboard).",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Destinations",
+          "id": "req-97",
           "request": {
             "method": "GET",
             "header": [],
@@ -3682,7 +3712,7 @@
         },
         {
           "name": "Get Destination Summaries",
-          "id": "req-97",
+          "id": "req-98",
           "request": {
             "method": "GET",
             "header": [],
@@ -3706,7 +3736,7 @@
         },
         {
           "name": "Get Destination By Id",
-          "id": "req-98",
+          "id": "req-99",
           "request": {
             "method": "GET",
             "header": [],
@@ -3737,7 +3767,7 @@
         },
         {
           "name": "Get Similar Destinations",
-          "id": "req-99",
+          "id": "req-100",
           "request": {
             "method": "GET",
             "header": [],
@@ -3767,7 +3797,7 @@
         },
         {
           "name": "Get All Destination Cities",
-          "id": "req-100",
+          "id": "req-101",
           "request": {
             "method": "GET",
             "header": [],
@@ -3791,7 +3821,7 @@
         },
         {
           "name": "Get Destinations By City",
-          "id": "req-101",
+          "id": "req-102",
           "request": {
             "method": "GET",
             "header": [],
@@ -3821,7 +3851,7 @@
         },
         {
           "name": "Get All Services",
-          "id": "req-102",
+          "id": "req-103",
           "request": {
             "method": "GET",
             "header": [],
@@ -3845,7 +3875,7 @@
         },
         {
           "name": "Get All Activities",
-          "id": "req-103",
+          "id": "req-104",
           "request": {
             "method": "GET",
             "header": [],
@@ -3869,7 +3899,7 @@
         },
         {
           "name": "Get All Events",
-          "id": "req-104",
+          "id": "req-105",
           "request": {
             "method": "GET",
             "header": [],
@@ -3893,7 +3923,7 @@
         },
         {
           "name": "Get All Weddings",
-          "id": "req-105",
+          "id": "req-106",
           "request": {
             "method": "GET",
             "header": [],
@@ -3917,7 +3947,7 @@
         },
         {
           "name": "Get About Us",
-          "id": "req-106",
+          "id": "req-107",
           "request": {
             "method": "GET",
             "header": [],
@@ -3941,7 +3971,7 @@
         },
         {
           "name": "Get All Founders",
-          "id": "req-107",
+          "id": "req-108",
           "request": {
             "method": "GET",
             "header": [],
@@ -3965,7 +3995,7 @@
         },
         {
           "name": "Get All Blogs",
-          "id": "req-108",
+          "id": "req-109",
           "request": {
             "method": "GET",
             "header": [],
@@ -3989,7 +4019,7 @@
         },
         {
           "name": "Get Blog By Id",
-          "id": "req-109",
+          "id": "req-110",
           "request": {
             "method": "GET",
             "header": [],
@@ -4020,7 +4050,7 @@
         },
         {
           "name": "Get Blog Subs By Blog Id",
-          "id": "req-110",
+          "id": "req-111",
           "request": {
             "method": "GET",
             "header": [],
@@ -4051,7 +4081,7 @@
         },
         {
           "name": "Get All Payment Methods",
-          "id": "req-111",
+          "id": "req-112",
           "request": {
             "method": "GET",
             "header": [],
@@ -4075,7 +4105,7 @@
         },
         {
           "name": "Get All Reviews",
-          "id": "req-112",
+          "id": "req-113",
           "request": {
             "method": "GET",
             "header": [],
@@ -4099,7 +4129,7 @@
         },
         {
           "name": "Get All Review Platforms",
-          "id": "req-113",
+          "id": "req-114",
           "request": {
             "method": "GET",
             "header": [],
@@ -4123,7 +4153,7 @@
         },
         {
           "name": "Get All Reels",
-          "id": "req-114",
+          "id": "req-115",
           "request": {
             "method": "GET",
             "header": [],
@@ -4147,7 +4177,7 @@
         },
         {
           "name": "Get All Customer Photos",
-          "id": "req-115",
+          "id": "req-116",
           "request": {
             "method": "GET",
             "header": [],
@@ -4171,7 +4201,7 @@
         },
         {
           "name": "Get Reviews Settings",
-          "id": "req-116",
+          "id": "req-117",
           "request": {
             "method": "GET",
             "header": [],
@@ -4195,7 +4225,7 @@
         },
         {
           "name": "Get All Social Media Links",
-          "id": "req-117",
+          "id": "req-118",
           "request": {
             "method": "GET",
             "header": [],

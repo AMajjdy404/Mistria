@@ -2883,6 +2883,9 @@ namespace Mistria.API.Controllers
                     _logger.LogError(ex, "Failed to deserialize content JSON: {Message} | Raw JSON: {Json}", ex.Message, blogSubDto.ContentJson);
                     return BadRequest("Invalid content JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
                 }
+
+                if (content.Count == 0)
+                    return BadRequest("Content is required and cannot be empty");
             }
 
             string cover = blogSub.CoverImage ?? string.Empty;
@@ -2902,6 +2905,12 @@ namespace Mistria.API.Controllers
                     cover = DocumentSettings.UploadFile(blogSubDto.CoverImage, "BlogSubsCover");
                     if (string.IsNullOrEmpty(cover))
                         return BadRequest("Failed to upload cover image");
+                }
+                else if (blogSubDto.RemoveCoverImage == true)
+                {
+                    if (!string.IsNullOrEmpty(cover))
+                        DocumentSettings.DeleteFile(cover, "BlogSubsCover");
+                    cover = string.Empty;
                 }
 
                 blogSub.CoverImage = cover;
