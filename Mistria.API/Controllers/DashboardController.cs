@@ -445,7 +445,7 @@ namespace Mistria.API.Controllers
                     Title = programDto.Title?.Trim(),
                     Description = programDto.Description?.Trim(),
                     Location = programDto.Location?.Trim(),
-                    LocationUrl = programDto.LocationUrl?.Trim(),
+                    Duration = programDto.Duration?.Trim(),
                     Images = imageUrls,
                     CoverImage = cover,
                     Included = programDto.Included ?? new List<string>(),
@@ -553,8 +553,8 @@ namespace Mistria.API.Controllers
                     program.Description = programDto.Description.Trim();
                 if (!string.IsNullOrWhiteSpace(programDto.Location))
                     program.Location = programDto.Location.Trim();
-                if (!string.IsNullOrWhiteSpace(programDto.LocationUrl))
-                    program.LocationUrl = programDto.LocationUrl.Trim();
+                if (!string.IsNullOrWhiteSpace(programDto.Duration))
+                    program.Duration = programDto.Duration.Trim();
                 if (programDto.IsMain.HasValue)
                     program.IsMain = programDto.IsMain.Value;
                 if (programDto.Included != null)

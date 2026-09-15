@@ -11,8 +11,8 @@ namespace Mistria.API.Dtos
         public string Description { get; set; }
         [Required(ErrorMessage = "Location is Required")]
         public string Location { get; set; }
-        [Required(ErrorMessage = "LocationUrl is Required")]
-        public string LocationUrl { get; set; }
+        [Required(ErrorMessage = "Duration is Required")]
+        public string Duration { get; set; }
         [Required(ErrorMessage = "Images is Required")]
         public List<IFormFile> Images { get; set; }
         [Required(ErrorMessage = "Cover Image is Required")]

@@ -19,7 +19,7 @@ namespace Mistria.Domain.Models
         public string Location { get; set; }
         [Required]
 
-        public string LocationUrl { get; set; }
+        public string Duration { get; set; }
         [Required]
 
         public List<string> Images { get; set; }

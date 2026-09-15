@@ -290,8 +290,8 @@
                   "description": ""
                 },
                 {
-                  "key": "LocationUrl",
-                  "value": "https://maps.google.com/?q=Cairo",
+                  "key": "Duration",
+                  "value": "6 days",
                   "type": "text",
                   "description": ""
                 },
@@ -419,8 +419,8 @@
                   "description": ""
                 },
                 {
-                  "key": "LocationUrl",
-                  "value": "https://maps.google.com/?q=Cairo",
+                  "key": "Duration",
+                  "value": "6 days",
                   "type": "text",
                   "description": ""
                 },
