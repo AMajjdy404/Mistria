@@ -20,6 +20,9 @@ namespace Mistria.API.Extensions
             Services.AddIdentity<AppUser, IdentityRole>(options =>
             {
                 options.SignIn.RequireConfirmedAccount = false;
+                // Use the Email token provider so password reset codes are short, numeric OTPs (6 digits)
+                // instead of the long default token, which is easier for users to type in.
+                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
             })
             .AddEntityFrameworkStores<TravelDbContext>()
             .AddDefaultTokenProviders();

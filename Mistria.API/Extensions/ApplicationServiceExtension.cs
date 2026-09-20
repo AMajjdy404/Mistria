@@ -1,4 +1,5 @@
-﻿using Mistria.API.Helpers;
+﻿using Mapster;
+using Mistria.API.Helpers;
 using Mistria.Domain.Interfaces;
 using Mistria.Infrastructure.Implementation;
 using System.Text.Json.Serialization;
@@ -7,11 +8,14 @@ namespace Mistria.API.Extensions
 {
     public static class ApplicationServiceExtension
     {
-        public static IServiceCollection AddApplicationService(this IServiceCollection Services)
+        public static IServiceCollection AddApplicationService(this IServiceCollection Services, IConfiguration configuration)
         {
 
+            UrlHelper.BaseApiUrl = configuration["BaseApiUrl"] ?? string.Empty;
+
             Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
-            Services.AddAutoMapper(typeof(MappingProfiles));
+            Services.AddMapster();
+            MappingConfig.Configure();
             Services.AddScoped<AdminSeeding>();
             Services.AddAuthorization();
 

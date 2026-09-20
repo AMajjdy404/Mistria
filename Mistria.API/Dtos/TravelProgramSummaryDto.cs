@@ -6,6 +6,7 @@ namespace Mistria.API.Dtos
         public string Title { get; set; }
         public string CoverImage { get; set; }
         public string Location { get; set; }
+        public int Order { get; set; }
         public decimal? StartingFromPrice { get; set; }
     }
 }

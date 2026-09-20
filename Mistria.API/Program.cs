@@ -31,7 +31,7 @@ builder.Services.AddDbContext<TravelDbContext>(options =>
 });
 
 // Extensions
-builder.Services.AddApplicationService();
+builder.Services.AddApplicationService(builder.Configuration);
 builder.Services.AddIdentityService(builder.Configuration);
 
 builder.Services.AddCors(options =>

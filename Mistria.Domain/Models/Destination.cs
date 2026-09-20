@@ -10,33 +10,49 @@ namespace Mistria.Domain.Models
     public class Destination
     {
         public int Id { get; set; }
-
         [Required]
         public string Title { get; set; }
-
         [Required]
         public string Description { get; set; }
-
         [Required]
+
         public string Location { get; set; }
-
         [Required]
-        public string LocationUrl { get; set; }
+
+        public string Duration { get; set; }
+        [Required]
 
         public List<string> Images { get; set; }
+        [Required]
 
         public string CoverImage { get; set; }
 
-        public List<string> Included { get; set; }
+        [Required]
+        public List<string> Included { get; set; } = new List<string>();
 
         [Required]
-        public decimal PricePerPerson { get; set; }
+        public List<string> Excluded { get; set; } = new List<string>();
 
-        [Required]
-        public bool IsMain { get; set; }
+        public bool? IsMain { get; set; } = false;
 
-        public Dictionary<string, string> Itinerary { get; set; }
+        public int Order { get; set; }
+
+        public List<ItineraryDay> Itinerary { get; set; } = new List<ItineraryDay>();
+
+        public List<PricingTier> PricingTiers { get; set; } = new List<PricingTier>();
+
         [Required]
         public string City { get; set; }
+
+        public decimal? GetStartingPrice()
+        {
+            var prices = PricingTiers?
+                .SelectMany(t => t.DateRanges ?? new List<PricingDateRange>())
+                .SelectMany(d => d.GroupPricing ?? new List<GroupPricing>())
+                .Select(g => g.PricePerPerson)
+                .ToList();
+
+            return prices != null && prices.Count > 0 ? prices.Min() : null;
+        }
     }
 }

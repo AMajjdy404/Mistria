@@ -1,5 +1,5 @@
 ﻿using System.Security.Claims;
-using AutoMapper;
+using MapsterMapper;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -111,7 +111,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetMainProgram request");
 
-            var programs = await _travelProgramRepo.GetAllAsync(p => p.IsMain == true);
+            var programs = (await _travelProgramRepo.GetAllAsync(p => p.IsMain == true)).OrderBy(p => p.Order);
             var result = _mapper.Map<IQueryable<TravelProgram>,IReadOnlyList<ReturnedProgramDto>>(programs);
             return Ok(result);
         }
@@ -122,7 +122,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetAllProgramSummaries request");
 
-            var programs = await _travelProgramRepo.GetAllAsync();
+            var programs = (await _travelProgramRepo.GetAllAsync()).OrderBy(p => p.Order).ToList();
             var result = _mapper.Map<List<TravelProgramSummaryDto>>(programs);
 
             _logger.LogInformation("Returned {Count} program summaries", result.Count);
@@ -134,7 +134,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetAllPrograms request");
 
-            var programs = await _travelProgramRepo.GetAllAsync();
+            var programs = (await _travelProgramRepo.GetAllAsync()).OrderBy(p => p.Order).ToList();
             var result = _mapper.Map<List<ReturnedProgramDto>>(programs);
 
             _logger.LogInformation("Returned {Count} programs", result.Count);
@@ -196,7 +196,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetMainDestinations request");
 
-            var destinations = await _destinationRepo.GetAllAsync(d => d.IsMain == true);
+            var destinations = (await _destinationRepo.GetAllAsync(d => d.IsMain == true)).OrderBy(d => d.Order);
             var result = _mapper.Map<IQueryable<Destination>, IReadOnlyList<DestinationReturnedDto>>(destinations);
             return Ok(result);
         }
@@ -206,7 +206,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetAllDestinations request");
 
-            var destinations = await _destinationRepo.GetAllAsync();
+            var destinations = (await _destinationRepo.GetAllAsync()).OrderBy(d => d.Order).ToList();
             var result = _mapper.Map<List<DestinationReturnedDto>>(destinations);
 
             _logger.LogInformation("Returned {Count} destinations", result.Count);
@@ -218,7 +218,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetDestinationSummaries request");
 
-            var destinations = await _destinationRepo.GetAllAsync();
+            var destinations = (await _destinationRepo.GetAllAsync()).OrderBy(d => d.Order).ToList();
             var result = _mapper.Map<List<DestinationSummaryDto>>(destinations);
 
             _logger.LogInformation("Returned {Count} destination summaries", result.Count);
@@ -258,9 +258,10 @@ namespace Mistria.API.Controllers
             var allDestinations = await _destinationRepo.GetAllAsync();
             var otherDestinations = allDestinations.Where(dt => dt.Id != id).ToList();
 
+            var selectedPrice = selectedDestination.GetStartingPrice() ?? 0;
             var similarDestinations = otherDestinations
                 .GroupBy(dt => dt.City) // Group by City first
-                .SelectMany(g => g.OrderBy(dt => Math.Abs(dt.PricePerPerson - selectedDestination.PricePerPerson)))
+                .SelectMany(g => g.OrderBy(dt => Math.Abs((dt.GetStartingPrice() ?? 0) - selectedPrice)))
                 .Take(3)
                 .ToList();
 
@@ -279,6 +280,7 @@ namespace Mistria.API.Controllers
 
             var cities = destinations
                 .GroupBy(dt => dt.City) // نجمع بالمدينة
+                .OrderBy(g => g.Min(dt => dt.Order))
                 .Select(g => new CityDto
                 {
                     City = g.Key,
@@ -296,7 +298,7 @@ namespace Mistria.API.Controllers
         {
             _logger.LogInformation("Received GetDestinationsByCity request for city: {City}", city);
 
-            var destinations = await _destinationRepo.GetAllAsync(dt => dt.City == city);
+            var destinations = (await _destinationRepo.GetAllAsync(dt => dt.City == city)).OrderBy(dt => dt.Order);
             if (!destinations.Any())
             {
                 _logger.LogWarning("No destinations found for city: {City}", city);

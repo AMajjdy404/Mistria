@@ -169,7 +169,7 @@
                 "forgotpasswordOwner"
               ]
             },
-            "description": "Public. Sends a password reset code by email.",
+            "description": "Public. Sends a 6-digit password reset code by email.",
             "auth": {
               "type": "noauth"
             },
@@ -213,7 +213,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"admin@travel.com\",\n  \"code\": \"CODE_FROM_EMAIL\",\n  \"newPassword\": \"NewP@ssw0rd123\"\n}",
+              "raw": "{\n  \"email\": \"admin@travel.com\",\n  \"code\": \"123456\",\n  \"newPassword\": \"NewP@ssw0rd123\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -243,9 +243,58 @@
             "description": "No [Authorize] attribute on this route, but call it while logged in to clear the auth cookie."
           },
           "response": []
+        },
+        {
+          "name": "Get Audit Logs",
+          "id": "req-119",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard/getAuditLogs?page=1&pageSize=20",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard",
+                "getAuditLogs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20"
+                },
+                {
+                  "key": "userEmail",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional. Filter to one user's activity."
+                },
+                {
+                  "key": "fromDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional. ISO date, e.g. 2026-09-01."
+                },
+                {
+                  "key": "toDate",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Optional. ISO date, e.g. 2026-09-20."
+                }
+              ]
+            },
+            "description": "Who did what and when. Every non-GET Dashboard request (Add/Update/Delete, login, password reset, ...) is recorded automatically by AuditLogActionFilter - this endpoint just reads that log back, newest first, paged."
+          },
+          "response": []
         }
       ],
-      "description": "Login, user management, and password recovery (DashboardController \"User\" region)."
+      "description": "Login, user management, password recovery, and the activity audit log (DashboardController \"User\" and \"Audit Log\" regions)."
     },
     {
       "name": "Travel Programs (Dashboard)",
@@ -342,6 +391,12 @@
                   "value": "false",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
                 },
                 {
                   "key": "ItineraryJson",
@@ -471,6 +526,12 @@
                   "value": "false",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "",
+                  "type": "text",
+                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
                 },
                 {
                   "key": "ItineraryJson",
@@ -624,8 +685,8 @@
                   "description": ""
                 },
                 {
-                  "key": "LocationUrl",
-                  "value": "https://maps.google.com/?q=Alexandria",
+                  "key": "Duration",
+                  "value": "1 day",
                   "type": "text",
                   "description": ""
                 },
@@ -633,7 +694,7 @@
                   "key": "Images",
                   "type": "file",
                   "src": [],
-                  "description": ""
+                  "description": "Repeat this key for each gallery image."
                 },
                 {
                   "key": "CoverImage",
@@ -645,13 +706,13 @@
                   "key": "Included",
                   "value": "Private transfer",
                   "type": "text",
-                  "description": ""
+                  "description": "Repeat this key for each included item."
                 },
                 {
-                  "key": "PricePerPerson",
-                  "value": "85",
+                  "key": "Excluded",
+                  "value": "Entry tickets",
                   "type": "text",
-                  "description": ""
+                  "description": "Repeat this key for each excluded item."
                 },
                 {
                   "key": "IsMain",
@@ -660,10 +721,34 @@
                   "description": ""
                 },
                 {
-                  "key": "ItineraryJson",
-                  "value": "{\n  \"Day 1\": \"Arrival and city tour.\",\n  \"Day 2\": \"Free day at leisure.\"\n}",
+                  "key": "Order",
+                  "value": "",
                   "type": "text",
-                  "description": "JSON object of \"Day X\" -> description text."
+                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival and city tour\",\n    \"image\": null,\n    \"description\": \"Pickup from Cairo and guided tour of Alexandria.\",\n    \"events\": [\n      {\n        \"title\": \"Citadel visit\",\n        \"description\": \"Guided tour of the Citadel of Qaitbay.\"\n      }\n    ],\n    \"meals\": [\n      \"Lunch\"\n    ],\n    \"accommodation\": null\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of day objects. See collection docs."
+                },
+                {
+                  "key": "ItineraryDayImages",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional. Nth file maps to ItineraryDayImageIndexes[N]."
+                },
+                {
+                  "key": "ItineraryDayImageIndexes",
+                  "value": "0",
+                  "type": "text",
+                  "description": "Optional. Repeat alongside ItineraryDayImages, one index per file."
+                },
+                {
+                  "key": "PricingTiersJson",
+                  "value": "[\n  {\n    \"name\": \"Standard\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 85\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 150\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of pricing tier objects. See collection docs."
                 },
                 {
                   "key": "City",
@@ -723,8 +808,8 @@
                   "description": ""
                 },
                 {
-                  "key": "LocationUrl",
-                  "value": "https://maps.google.com/?q=Alexandria",
+                  "key": "Duration",
+                  "value": "1 day",
                   "type": "text",
                   "description": ""
                 },
@@ -732,7 +817,7 @@
                   "key": "Images",
                   "type": "file",
                   "src": [],
-                  "description": ""
+                  "description": "Repeat this key for each gallery image."
                 },
                 {
                   "key": "CoverImage",
@@ -744,13 +829,13 @@
                   "key": "Included",
                   "value": "Private transfer",
                   "type": "text",
-                  "description": ""
+                  "description": "Repeat this key for each included item."
                 },
                 {
-                  "key": "PricePerPerson",
-                  "value": "85",
+                  "key": "Excluded",
+                  "value": "Entry tickets",
                   "type": "text",
-                  "description": ""
+                  "description": "Repeat this key for each excluded item."
                 },
                 {
                   "key": "IsMain",
@@ -759,10 +844,34 @@
                   "description": ""
                 },
                 {
-                  "key": "ItineraryJson",
-                  "value": "{\n  \"Day 1\": \"Arrival and city tour.\",\n  \"Day 2\": \"Free day at leisure.\"\n}",
+                  "key": "Order",
+                  "value": "",
                   "type": "text",
-                  "description": "JSON object of \"Day X\" -> description text."
+                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
+                },
+                {
+                  "key": "ItineraryJson",
+                  "value": "[\n  {\n    \"dayNumber\": 1,\n    \"title\": \"Arrival and city tour\",\n    \"image\": null,\n    \"description\": \"Pickup from Cairo and guided tour of Alexandria.\",\n    \"events\": [\n      {\n        \"title\": \"Citadel visit\",\n        \"description\": \"Guided tour of the Citadel of Qaitbay.\"\n      }\n    ],\n    \"meals\": [\n      \"Lunch\"\n    ],\n    \"accommodation\": null\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of day objects. See collection docs."
+                },
+                {
+                  "key": "ItineraryDayImages",
+                  "type": "file",
+                  "src": [],
+                  "description": "Optional. Nth file maps to ItineraryDayImageIndexes[N]."
+                },
+                {
+                  "key": "ItineraryDayImageIndexes",
+                  "value": "0",
+                  "type": "text",
+                  "description": "Optional. Repeat alongside ItineraryDayImages, one index per file."
+                },
+                {
+                  "key": "PricingTiersJson",
+                  "value": "[\n  {\n    \"name\": \"Standard\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 85\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 150\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "type": "text",
+                  "description": "JSON array of pricing tier objects. See collection docs."
                 },
                 {
                   "key": "City",
@@ -853,7 +962,7 @@
           "response": []
         }
       ],
-      "description": "Formerly \"DayTrip\" - renamed to Destination. Itinerary here is a simple JSON object (day label -> text), unlike the richer Travel Program itinerary."
+      "description": "Formerly \"DayTrip\" - renamed to Destination. Structured the same as Travel Program (Duration, Included/Excluded, itinerary days, pricing tiers, StartingFromPrice), plus a City field used for grouping."
     },
     {
       "name": "Weddings (Dashboard)",

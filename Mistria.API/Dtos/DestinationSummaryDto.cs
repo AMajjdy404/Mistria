@@ -7,6 +7,7 @@ namespace Mistria.API.Dtos
         public string CoverImage { get; set; }
         public string Location { get; set; }
         public string City { get; set; }
-        public decimal PricePerPerson { get; set; }
+        public int Order { get; set; }
+        public decimal? StartingFromPrice { get; set; }
     }
 }

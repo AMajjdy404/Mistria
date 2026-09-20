@@ -25,6 +25,9 @@ namespace Mistria.API.Dtos
 
         public bool? IsMain { get; set; } = false;
 
+        // Optional: 1-based display order. When omitted, the item is appended after the current last order.
+        public int? Order { get; set; }
+
         [Required(ErrorMessage = "Itinerary JSON is required")]
         public string ItineraryJson { get; set; }
 

@@ -11,6 +11,7 @@ namespace Mistria.API.Dtos
         public List<string>? Included { get; set; }
         public List<string>? Excluded { get; set; }
         public bool? IsMain { get; set; }
+        public int? Order { get; set; }
         public string? ItineraryJson { get; set; }
         public List<IFormFile>? ItineraryDayImages { get; set; }
         public List<int>? ItineraryDayImageIndexes { get; set; }

@@ -15,6 +15,7 @@ namespace Mistria.API.Dtos
         public List<string> Included { get; set; }
         public List<string> Excluded { get; set; }
         public bool IsMain { get; set; }
+        public int Order { get; set; }
         public List<ItineraryDayReturnedDto> Itinerary { get; set; }
         public List<PricingTier> PricingTiers { get; set; }
         public decimal? StartingFromPrice { get; set; }

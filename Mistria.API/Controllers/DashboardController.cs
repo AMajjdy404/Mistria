@@ -1,7 +1,7 @@
-﻿using System.Net;
+﻿using System.Linq.Expressions;
 using System.Numerics;
 using System.Security.Claims;
-using AutoMapper;
+using MapsterMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +18,7 @@ namespace Mistria.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [TypeFilter(typeof(AuditLogActionFilter))]
     public class DashboardController : ControllerBase
     {
         private readonly UserManager<AppUser> _userManager;
@@ -42,6 +43,7 @@ namespace Mistria.API.Controllers
         private readonly IGenericRepository<CustomerPhoto> _customerPhotoRepo;
         private readonly IGenericRepository<ReviewsSettings> _reviewsSettingsRepo;
         private readonly IGenericRepository<SocialMediaLink> _socialMediaLinkRepo;
+        private readonly IGenericRepository<AuditLog> _auditLogRepo;
         private readonly IMapper _mapper;
         private readonly ILogger<DashboardController> _logger;
 
@@ -67,6 +69,7 @@ namespace Mistria.API.Controllers
             IGenericRepository<CustomerPhoto> customerPhotoRepo,
             IGenericRepository<ReviewsSettings> reviewsSettingsRepo,
             IGenericRepository<SocialMediaLink> socialMediaLinkRepo,
+            IGenericRepository<AuditLog> auditLogRepo,
             IMapper mapper,
             ILogger<DashboardController> logger
 
@@ -94,6 +97,7 @@ namespace Mistria.API.Controllers
             _customerPhotoRepo = customerPhotoRepo;
             _reviewsSettingsRepo = reviewsSettingsRepo;
             _socialMediaLinkRepo = socialMediaLinkRepo;
+            _auditLogRepo = auditLogRepo;
             _mapper = mapper;
             _logger = logger;
         }
@@ -222,14 +226,13 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return BadRequest("Email is not exist");
 
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            var encodedToken = WebUtility.UrlEncode(token);
+            var code = await _userManager.GeneratePasswordResetTokenAsync(user);
 
             var email = new Email()
             {
                 To = dto.Email,
                 Subject = "Reset Password",
-                Body = encodedToken
+                Body = $"Your password reset code is: {code}\nThis code will expire shortly."
             };
 
             await _mailService.SendEmailAsync(email);
@@ -244,9 +247,7 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return BadRequest("Email is not exist");
 
-            var decodedToken = WebUtility.UrlDecode(dto.Code);
-
-            var result = await _userManager.ResetPasswordAsync(user, decodedToken, dto.NewPassword);
+            var result = await _userManager.ResetPasswordAsync(user, dto.Code, dto.NewPassword);
 
             if (result.Succeeded)
                 return Ok("Password Changed Sucessfuly");
@@ -263,6 +264,41 @@ namespace Mistria.API.Controllers
             Response.Cookies.Delete("yourAppCookie");
 
             return Ok();
+        }
+
+        #endregion
+
+        #region Audit Log
+
+        [HttpGet("getAuditLogs")]
+        [Authorize]
+        public async Task<ActionResult<PagedResult<AuditLogReturnedDto>>> GetAuditLogs(
+            [FromQuery] string? userEmail,
+            [FromQuery] DateTime? fromDate,
+            [FromQuery] DateTime? toDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            _logger.LogInformation("Received GetAuditLogs request. UserEmail: {UserEmail}, FromDate: {FromDate}, ToDate: {ToDate}", userEmail, fromDate, toDate);
+
+            if (page < 1) page = 1;
+            if (pageSize < 1 || pageSize > 200) pageSize = 20;
+
+            Expression<Func<AuditLog, bool>> predicate = log =>
+                (string.IsNullOrEmpty(userEmail) || log.UserEmail == userEmail) &&
+                (!fromDate.HasValue || log.Timestamp >= fromDate.Value) &&
+                (!toDate.HasValue || log.Timestamp <= toDate.Value);
+
+            var paged = await _auditLogRepo.GetPagedAsync(page, pageSize, predicate, log => log.Timestamp, descending: true);
+
+            var result = new PagedResult<AuditLogReturnedDto>
+            {
+                Items = _mapper.Map<List<AuditLogReturnedDto>>(paged.Items),
+                TotalItems = paged.TotalItems
+            };
+
+            _logger.LogInformation("Returned {Count} of {Total} audit log entries", result.Items.Count, result.TotalItems);
+            return Ok(result);
         }
 
         #endregion
@@ -345,7 +381,7 @@ namespace Mistria.API.Controllers
 
         // Applies ItineraryDayImages (matched by ItineraryDayImageIndexes) onto the parsed itinerary days.
         // Uploaded file URLs are appended to uploadedImageUrls so callers can clean them up on failure.
-        private ActionResult? ApplyItineraryDayImages(List<ItineraryDay> itinerary, List<IFormFile>? dayImages, List<int>? dayImageIndexes, List<string> uploadedImageUrls)
+        private ActionResult? ApplyItineraryDayImages(List<ItineraryDay> itinerary, List<IFormFile>? dayImages, List<int>? dayImageIndexes, List<string> uploadedImageUrls, string uploadFolder = "ProgramsItinerary")
         {
             if (dayImages == null || !dayImages.Any())
                 return null;
@@ -362,7 +398,7 @@ namespace Mistria.API.Controllers
                 var file = dayImages[i];
                 if (file?.Length > 0)
                 {
-                    var url = DocumentSettings.UploadFile(file, "ProgramsItinerary");
+                    var url = DocumentSettings.UploadFile(file, uploadFolder);
                     if (string.IsNullOrEmpty(url))
                         return BadRequest("Failed to upload itinerary day image");
 
@@ -370,6 +406,35 @@ namespace Mistria.API.Controllers
                     itinerary[idx].Image = url;
                 }
             }
+
+            return null;
+        }
+
+        // Resolves the Order for a newly created item: uses the requested value if provided (after
+        // checking it isn't already taken), otherwise appends it after the current last order.
+        private async Task<(int Order, ActionResult? Error)> ResolveOrderForCreateAsync<T>(IGenericRepository<T> repo, int? requestedOrder, Func<T, int> orderSelector) where T : class
+        {
+            var all = await repo.GetAllAsync();
+
+            if (requestedOrder.HasValue)
+            {
+                if (all.Any(x => orderSelector(x) == requestedOrder.Value))
+                    return (0, BadRequest($"Order {requestedOrder.Value} is already used by another item. Please choose a different order."));
+
+                return (requestedOrder.Value, null);
+            }
+
+            var nextOrder = all.Any() ? all.Max(orderSelector) + 1 : 1;
+            return (nextOrder, null);
+        }
+
+        // Rejects an order update if another item already uses that order.
+        private async Task<ActionResult?> ValidateOrderForUpdateAsync<T>(IGenericRepository<T> repo, int currentId, int newOrder, Func<T, int> idSelector, Func<T, int> orderSelector) where T : class
+        {
+            var all = await repo.GetAllAsync();
+
+            if (all.Any(x => idSelector(x) != currentId && orderSelector(x) == newOrder))
+                return BadRequest($"Order {newOrder} is already used by another item. Please choose a different order.");
 
             return null;
         }
@@ -390,6 +455,13 @@ namespace Mistria.API.Controllers
             {
                 _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
                 return BadRequest(pricingError);
+            }
+
+            var (order, orderError) = await ResolveOrderForCreateAsync(_travelProgramRepo, programDto.Order, p => p.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", programDto.Order);
+                return orderError;
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -451,6 +523,7 @@ namespace Mistria.API.Controllers
                     Included = programDto.Included ?? new List<string>(),
                     Excluded = programDto.Excluded ?? new List<string>(),
                     IsMain = programDto.IsMain,
+                    Order = order,
                     Itinerary = itinerary,
                     PricingTiers = pricingTiers
                 };
@@ -524,6 +597,16 @@ namespace Mistria.API.Controllers
                 }
             }
 
+            if (programDto.Order.HasValue)
+            {
+                var orderError = await ValidateOrderForUpdateAsync(_travelProgramRepo, id, programDto.Order.Value, p => p.Id, p => p.Order);
+                if (orderError != null)
+                {
+                    _logger.LogWarning("Invalid order: {Order}", programDto.Order);
+                    return orderError;
+                }
+            }
+
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
             if (string.IsNullOrEmpty(email))
                 return Unauthorized("Invalid user data");
@@ -557,6 +640,8 @@ namespace Mistria.API.Controllers
                     program.Duration = programDto.Duration.Trim();
                 if (programDto.IsMain.HasValue)
                     program.IsMain = programDto.IsMain.Value;
+                if (programDto.Order.HasValue)
+                    program.Order = programDto.Order.Value;
                 if (programDto.Included != null)
                     program.Included = programDto.Included;
                 if (programDto.Excluded != null)
@@ -700,7 +785,7 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var programs = await _travelProgramRepo.GetAllAsync();
+            var programs = (await _travelProgramRepo.GetAllAsync()).OrderBy(p => p.Order).ToList();
             var result = _mapper.Map<List<ReturnedProgramDto>>(programs);
 
             _logger.LogInformation("Returned {Count} programs", result.Count);
@@ -742,53 +827,23 @@ namespace Mistria.API.Controllers
             _logger.LogInformation("Received AddDestination request. ItineraryJson: '{Json}'", destinationDto.ItineraryJson ?? "null");
             _logger.LogInformation("ModelState Errors: {Errors}", string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
 
-            Dictionary<string, string> itinerary = new Dictionary<string, string>();
-            if (!string.IsNullOrWhiteSpace(destinationDto.ItineraryJson))
+            if (!TryParseItinerary(destinationDto.ItineraryJson, out var itinerary, out var itineraryError))
             {
-                try
-                {
-                    var cleanedJson = destinationDto.ItineraryJson.Trim();
-                    _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
-                    using var doc = JsonDocument.Parse(cleanedJson);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                    {
-                        var firstObject = doc.RootElement[0];
-                        if (firstObject.ValueKind == JsonValueKind.Object)
-                        {
-                            itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(firstObject.GetRawText()) ?? new Dictionary<string, string>();
-                        }
-                        else
-                        {
-                            _logger.LogWarning("First element in ItineraryJson array is not an object: {Json}", cleanedJson);
-                            return BadRequest("Itinerary JSON array must contain at least one object (e.g., [{\"key\": \"value\"}])");
-                        }
-                    }
-                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                    {
-                        itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
-                    }
-                    else
-                    {
-                        _logger.LogWarning("ItineraryJson is not a valid object or array: {Json}", cleanedJson);
-                        return BadRequest("Itinerary JSON must be an object or array of objects (e.g., {\"key\": \"value\"} or [{\"key\": \"value\"}])");
-                    }
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, destinationDto.ItineraryJson);
-                    return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
-                }
-            }
-            else
-            {
-                _logger.LogWarning("ItineraryJson is null or empty");
-                return BadRequest("Itinerary JSON is required");
+                _logger.LogWarning("Invalid itinerary: {Error}", itineraryError);
+                return BadRequest(itineraryError);
             }
 
-            if (itinerary.Count == 0)
+            if (!TryParsePricingTiers(destinationDto.PricingTiersJson, out var pricingTiers, out var pricingError))
             {
-                _logger.LogWarning("Itinerary is empty after deserialization");
-                return BadRequest("Itinerary is required and cannot be empty");
+                _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
+                return BadRequest(pricingError);
+            }
+
+            var (order, orderError) = await ResolveOrderForCreateAsync(_destinationRepo, destinationDto.Order, d => d.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", destinationDto.Order);
+                return orderError;
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -807,6 +862,7 @@ namespace Mistria.API.Controllers
             }
 
             var imageUrls = new List<string>();
+            var itineraryImageUrls = new List<string>();
             string cover = string.Empty;
 
             using var transaction = await _destinationRepo.BeginTransactionAsync();
@@ -834,19 +890,25 @@ namespace Mistria.API.Controllers
                         return BadRequest("Failed to upload images");
                 }
 
+                var imagesResult = ApplyItineraryDayImages(itinerary, destinationDto.ItineraryDayImages, destinationDto.ItineraryDayImageIndexes, itineraryImageUrls, "DestinationsItinerary");
+                if (imagesResult != null)
+                    return imagesResult;
+
                 var destination = new Destination
                 {
                     Title = destinationDto.Title?.Trim(),
                     Description = destinationDto.Description?.Trim(),
                     Location = destinationDto.Location?.Trim(),
-                    LocationUrl = destinationDto.LocationUrl?.Trim(),
+                    Duration = destinationDto.Duration?.Trim(),
                     Images = imageUrls,
                     CoverImage = cover,
                     Included = destinationDto.Included ?? new List<string>(),
-                    PricePerPerson = destinationDto.PricePerPerson,
+                    Excluded = destinationDto.Excluded ?? new List<string>(),
                     IsMain = destinationDto.IsMain,
+                    Order = order,
                     Itinerary = itinerary,
-                    City = destinationDto.City
+                    PricingTiers = pricingTiers,
+                    City = destinationDto.City?.Trim()
                 };
 
                 await _destinationRepo.AddAsync(destination);
@@ -875,6 +937,11 @@ namespace Mistria.API.Controllers
                     DocumentSettings.DeleteFile(imageUrl, "Destinations");
                 }
 
+                foreach (var imageUrl in itineraryImageUrls)
+                {
+                    DocumentSettings.DeleteFile(imageUrl, "DestinationsItinerary");
+                }
+
                 _logger.LogError(ex, "Failed to create destination: {Message}", ex.Message);
                 return StatusCode(500, $"An error occurred while creating the destination: {ex.Message}");
             }
@@ -894,41 +961,33 @@ namespace Mistria.API.Controllers
                 return NotFound("Destination not found");
             }
 
-            Dictionary<string, string> itinerary = destination.Itinerary ?? new Dictionary<string, string>();
+            var itinerary = destination.Itinerary ?? new List<ItineraryDay>();
             if (!string.IsNullOrWhiteSpace(destinationDto.ItineraryJson))
             {
-                try
+                if (!TryParseItinerary(destinationDto.ItineraryJson, out itinerary, out var itineraryError))
                 {
-                    var cleanedJson = destinationDto.ItineraryJson.Trim();
-                    _logger.LogInformation("Attempting to deserialize ItineraryJson: '{Json}'", cleanedJson);
-                    using var doc = JsonDocument.Parse(cleanedJson);
-                    if (doc.RootElement.ValueKind == JsonValueKind.Array && doc.RootElement.GetArrayLength() > 0)
-                    {
-                        var firstObject = doc.RootElement[0];
-                        if (firstObject.ValueKind == JsonValueKind.Object)
-                        {
-                            itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(firstObject.GetRawText()) ?? new Dictionary<string, string>();
-                        }
-                        else
-                        {
-                            _logger.LogWarning("First element in ItineraryJson array is not an object: {Json}", cleanedJson);
-                            return BadRequest("Itinerary JSON array must contain at least one object (e.g., [{\"key\": \"value\"}])");
-                        }
-                    }
-                    else if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                    {
-                        itinerary = JsonSerializer.Deserialize<Dictionary<string, string>>(cleanedJson) ?? new Dictionary<string, string>();
-                    }
-                    else
-                    {
-                        _logger.LogWarning("ItineraryJson is not a valid object or array: {Json}", cleanedJson);
-                        return BadRequest("Itinerary JSON must be an object or array of objects (e.g., {\"key\": \"value\"} or [{\"key\": \"value\"}])");
-                    }
+                    _logger.LogWarning("Invalid itinerary: {Error}", itineraryError);
+                    return BadRequest(itineraryError);
                 }
-                catch (JsonException ex)
+            }
+
+            var pricingTiers = destination.PricingTiers ?? new List<PricingTier>();
+            if (!string.IsNullOrWhiteSpace(destinationDto.PricingTiersJson))
+            {
+                if (!TryParsePricingTiers(destinationDto.PricingTiersJson, out pricingTiers, out var pricingError))
                 {
-                    _logger.LogError(ex, "Failed to deserialize itinerary JSON: {Message} | Raw JSON: {Json}", ex.Message, destinationDto.ItineraryJson);
-                    return BadRequest("Invalid itinerary JSON format. Use {\"key\": \"value\", ...} or [{\"key\": \"value\", ...}]");
+                    _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
+                    return BadRequest(pricingError);
+                }
+            }
+
+            if (destinationDto.Order.HasValue)
+            {
+                var orderError = await ValidateOrderForUpdateAsync(_destinationRepo, id, destinationDto.Order.Value, d => d.Id, d => d.Order);
+                if (orderError != null)
+                {
+                    _logger.LogWarning("Invalid order: {Order}", destinationDto.Order);
+                    return orderError;
                 }
             }
 
@@ -948,6 +1007,7 @@ namespace Mistria.API.Controllers
             }
 
             var imageUrls = destination.Images ?? new List<string>();
+            var itineraryImageUrls = new List<string>();
             string cover = destination.CoverImage ?? string.Empty;
 
             using var transaction = await _destinationRepo.BeginTransactionAsync();
@@ -959,18 +1019,27 @@ namespace Mistria.API.Controllers
                     destination.Description = destinationDto.Description.Trim();
                 if (!string.IsNullOrWhiteSpace(destinationDto.Location))
                     destination.Location = destinationDto.Location.Trim();
-                if (!string.IsNullOrWhiteSpace(destinationDto.LocationUrl))
-                    destination.LocationUrl = destinationDto.LocationUrl.Trim();
-                if (destinationDto.PricePerPerson.HasValue)
-                    destination.PricePerPerson = destinationDto.PricePerPerson.Value;
+                if (!string.IsNullOrWhiteSpace(destinationDto.Duration))
+                    destination.Duration = destinationDto.Duration.Trim();
                 if (destinationDto.IsMain.HasValue)
                     destination.IsMain = destinationDto.IsMain.Value;
+                if (destinationDto.Order.HasValue)
+                    destination.Order = destinationDto.Order.Value;
                 if (destinationDto.Included != null)
                     destination.Included = destinationDto.Included;
-                if (destinationDto.ItineraryJson != null)
-                    destination.Itinerary = itinerary;
+                if (destinationDto.Excluded != null)
+                    destination.Excluded = destinationDto.Excluded;
+                if (destinationDto.PricingTiersJson != null)
+                    destination.PricingTiers = pricingTiers;
                 if (!string.IsNullOrWhiteSpace(destinationDto.City))
                     destination.City = destinationDto.City.Trim();
+
+                var imagesResult = ApplyItineraryDayImages(itinerary, destinationDto.ItineraryDayImages, destinationDto.ItineraryDayImageIndexes, itineraryImageUrls, "DestinationsItinerary");
+                if (imagesResult != null)
+                    return imagesResult;
+
+                if (destinationDto.ItineraryJson != null)
+                    destination.Itinerary = itinerary;
 
                 if (destinationDto.CoverImage != null)
                 {
@@ -1024,6 +1093,11 @@ namespace Mistria.API.Controllers
                     DocumentSettings.DeleteFile(imageUrl, "Destinations");
                 }
 
+                foreach (var imageUrl in itineraryImageUrls)
+                {
+                    DocumentSettings.DeleteFile(imageUrl, "DestinationsItinerary");
+                }
+
                 _logger.LogError(ex, "Failed to update destination: {Message}", ex.Message);
                 return StatusCode(500, $"An error occurred while updating the destination: {ex.Message}");
             }
@@ -1043,7 +1117,7 @@ namespace Mistria.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var destinations = await _destinationRepo.GetAllAsync();
+            var destinations = (await _destinationRepo.GetAllAsync()).OrderBy(d => d.Order).ToList();
             var result = _mapper.Map<List<DestinationReturnedDto>>(destinations);
 
             _logger.LogInformation("Returned {Count} destinations", result.Count);
@@ -1107,6 +1181,12 @@ namespace Mistria.API.Controllers
                 foreach (var imageUrl in destination.Images ?? new List<string>())
                 {
                     DocumentSettings.DeleteFile(imageUrl, "Destinations");
+                }
+
+                foreach (var day in destination.Itinerary ?? new List<ItineraryDay>())
+                {
+                    if (!string.IsNullOrEmpty(day.Image))
+                        DocumentSettings.DeleteFile(day.Image, "DestinationsItinerary");
                 }
 
                 _destinationRepo.Delete(destination);

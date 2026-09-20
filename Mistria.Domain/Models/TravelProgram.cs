@@ -35,6 +35,8 @@ namespace Mistria.Domain.Models
 
         public bool? IsMain { get; set; } = false;
 
+        public int Order { get; set; }
+
         public List<ItineraryDay> Itinerary { get; set; } = new List<ItineraryDay>();
 
         public List<PricingTier> PricingTiers { get; set; } = new List<PricingTier>();

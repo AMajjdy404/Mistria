@@ -26,6 +26,7 @@ namespace Mistria.Infrastructure.Data
         public DbSet<CustomerPhoto> CustomerPhotos { get; set; }
         public DbSet<ReviewsSettings> ReviewsSettingsInfos { get; set; }
         public DbSet<SocialMediaLink> SocialMediaLinks { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         public TravelDbContext(DbContextOptions<TravelDbContext> options):base(options)
         {
@@ -56,23 +57,27 @@ namespace Mistria.Infrastructure.Data
                 });
             });
 
-            builder.Entity<Destination>()
-                   .Property(p => p.PricePerPerson)
-                   .HasPrecision(18, 2);
-
             builder.Entity<Destination>(entity =>
             {
-                // Configure Itinerary as JSON
-                entity.Property(e => e.Itinerary)
-                    .HasConversion(
-                        v => JsonSerializer.Serialize(v, new JsonSerializerOptions { WriteIndented = true }),
-                        v => JsonSerializer.Deserialize<Dictionary<string, string>>(v, new JsonSerializerOptions()) ?? new Dictionary<string, string>(),
-                        new ValueComparer<Dictionary<string, string>>(
-                            (c1, c2) => c1.SequenceEqual(c2),
-                            c => c.Aggregate(0, (a, p) => HashCode.Combine(a, p.Key.GetHashCode(), p.Value.GetHashCode())),
-                            c => c.ToDictionary(p => p.Key, p => p.Value)))
-                    .HasColumnType("nvarchar(max)"); // Store as JSON string
+                // Itinerary days (and their nested events) stored as a single JSON column
+                entity.OwnsMany(d => d.Itinerary, day =>
+                {
+                    day.ToJson();
+                    day.OwnsMany(d => d.Events);
+                });
 
+                // Pricing tiers (and their nested date ranges / group pricing) stored as a single JSON column
+                entity.OwnsMany(d => d.PricingTiers, tier =>
+                {
+                    tier.ToJson();
+                    tier.OwnsMany(t => t.DateRanges, range =>
+                    {
+                        range.OwnsMany(r => r.GroupPricing, gp =>
+                        {
+                            gp.Property(g => g.PricePerPerson).HasPrecision(18, 2);
+                        });
+                    });
+                });
             });
 
             builder.Entity<Activity>()
