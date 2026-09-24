@@ -3,9 +3,9 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using Mistria.Domain.Models;
+using GateOfEgypt.Domain.Models;
 
-namespace Mistria.Infrastructure.Data
+namespace GateOfEgypt.Infrastructure.Data
 {
     public class TravelDbContext: IdentityDbContext<AppUser>
     {

@@ -1,4 +1,4 @@
-namespace Mistria.API.Dtos
+namespace GateOfEgypt.API.Dtos
 {
     public class ItineraryDayReturnedDto
     {

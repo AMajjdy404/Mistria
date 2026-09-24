@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using Mistria.Infrastructure.Data;
+using GateOfEgypt.Infrastructure.Data;
 
 #nullable disable
 
-namespace Mistria.Infrastructure.Data.Migrations
+namespace GateOfEgypt.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(TravelDbContext))]
     partial class TravelDbContextModelSnapshot : ModelSnapshot
@@ -155,7 +155,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.AboutUs", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.AboutUs", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -176,7 +176,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("AboutUsInfos");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Activity", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Activity", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -205,7 +205,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Activities");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.AppUser", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.AppUser", b =>
                 {
                     b.Property<string>("Id")
                         .HasColumnType("nvarchar(450)");
@@ -270,7 +270,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.AuditLog", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.AuditLog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -314,7 +314,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("AuditLogs");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Blog", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Blog", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -339,7 +339,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Blogs");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.BlogSub", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.BlogSub", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -367,7 +367,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("BlogSubs");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.CustomerPhoto", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.CustomerPhoto", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -384,7 +384,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("CustomerPhotos");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Destination", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Destination", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -439,7 +439,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Destinations");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Event", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Event", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -464,7 +464,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Events");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Founder", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Founder", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -489,7 +489,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Founders");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.PaymentMethod", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.PaymentMethod", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -506,7 +506,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("PaymentMethods");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Reel", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Reel", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -531,7 +531,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Reels");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Review", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Review", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -567,7 +567,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Reviews");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.ReviewPlatform", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.ReviewPlatform", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -596,7 +596,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("ReviewPlatforms");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.ReviewsSettings", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.ReviewsSettings", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -625,7 +625,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("ReviewsSettingsInfos");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Service", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Service", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -654,7 +654,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("Services");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.SocialMediaLink", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.SocialMediaLink", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -679,7 +679,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("SocialMediaLinks");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.TravelProgram", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.TravelProgram", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -730,7 +730,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.ToTable("TravelPrograms");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Wedding", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Wedding", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -766,7 +766,7 @@ namespace Mistria.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
-                    b.HasOne("Mistria.Domain.Models.AppUser", null)
+                    b.HasOne("GateOfEgypt.Domain.Models.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -775,7 +775,7 @@ namespace Mistria.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("Mistria.Domain.Models.AppUser", null)
+                    b.HasOne("GateOfEgypt.Domain.Models.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -790,7 +790,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Mistria.Domain.Models.AppUser", null)
+                    b.HasOne("GateOfEgypt.Domain.Models.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -799,16 +799,16 @@ namespace Mistria.Infrastructure.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
                 {
-                    b.HasOne("Mistria.Domain.Models.AppUser", null)
+                    b.HasOne("GateOfEgypt.Domain.Models.AppUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.Destination", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.Destination", b =>
                 {
-                    b.OwnsMany("Mistria.Domain.Models.ItineraryDay", "Itinerary", b1 =>
+                    b.OwnsMany("GateOfEgypt.Domain.Models.ItineraryDay", "Itinerary", b1 =>
                         {
                             b1.Property<int>("DestinationId")
                                 .HasColumnType("int");
@@ -849,7 +849,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("DestinationId");
 
-                            b1.OwnsMany("Mistria.Domain.Models.ItineraryEvent", "Events", b2 =>
+                            b1.OwnsMany("GateOfEgypt.Domain.Models.ItineraryEvent", "Events", b2 =>
                                 {
                                     b2.Property<int>("ItineraryDayDestinationId")
                                         .HasColumnType("int");
@@ -880,7 +880,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.Navigation("Events");
                         });
 
-                    b.OwnsMany("Mistria.Domain.Models.PricingTier", "PricingTiers", b1 =>
+                    b.OwnsMany("GateOfEgypt.Domain.Models.PricingTier", "PricingTiers", b1 =>
                         {
                             b1.Property<int>("DestinationId")
                                 .HasColumnType("int");
@@ -905,7 +905,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("DestinationId");
 
-                            b1.OwnsMany("Mistria.Domain.Models.PricingDateRange", "DateRanges", b2 =>
+                            b1.OwnsMany("GateOfEgypt.Domain.Models.PricingDateRange", "DateRanges", b2 =>
                                 {
                                     b2.Property<int>("PricingTierDestinationId")
                                         .HasColumnType("int");
@@ -930,7 +930,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                                     b2.WithOwner()
                                         .HasForeignKey("PricingTierDestinationId", "PricingTierId");
 
-                                    b2.OwnsMany("Mistria.Domain.Models.GroupPricing", "GroupPricing", b3 =>
+                                    b2.OwnsMany("GateOfEgypt.Domain.Models.GroupPricing", "GroupPricing", b3 =>
                                         {
                                             b3.Property<int>("PricingDateRangePricingTierDestinationId")
                                                 .HasColumnType("int");
@@ -972,9 +972,9 @@ namespace Mistria.Infrastructure.Data.Migrations
                     b.Navigation("PricingTiers");
                 });
 
-            modelBuilder.Entity("Mistria.Domain.Models.TravelProgram", b =>
+            modelBuilder.Entity("GateOfEgypt.Domain.Models.TravelProgram", b =>
                 {
-                    b.OwnsMany("Mistria.Domain.Models.ItineraryDay", "Itinerary", b1 =>
+                    b.OwnsMany("GateOfEgypt.Domain.Models.ItineraryDay", "Itinerary", b1 =>
                         {
                             b1.Property<int>("TravelProgramId")
                                 .HasColumnType("int");
@@ -1015,7 +1015,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("TravelProgramId");
 
-                            b1.OwnsMany("Mistria.Domain.Models.ItineraryEvent", "Events", b2 =>
+                            b1.OwnsMany("GateOfEgypt.Domain.Models.ItineraryEvent", "Events", b2 =>
                                 {
                                     b2.Property<int>("ItineraryDayTravelProgramId")
                                         .HasColumnType("int");
@@ -1046,7 +1046,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.Navigation("Events");
                         });
 
-                    b.OwnsMany("Mistria.Domain.Models.PricingTier", "PricingTiers", b1 =>
+                    b.OwnsMany("GateOfEgypt.Domain.Models.PricingTier", "PricingTiers", b1 =>
                         {
                             b1.Property<int>("TravelProgramId")
                                 .HasColumnType("int");
@@ -1071,7 +1071,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                             b1.WithOwner()
                                 .HasForeignKey("TravelProgramId");
 
-                            b1.OwnsMany("Mistria.Domain.Models.PricingDateRange", "DateRanges", b2 =>
+                            b1.OwnsMany("GateOfEgypt.Domain.Models.PricingDateRange", "DateRanges", b2 =>
                                 {
                                     b2.Property<int>("PricingTierTravelProgramId")
                                         .HasColumnType("int");
@@ -1096,7 +1096,7 @@ namespace Mistria.Infrastructure.Data.Migrations
                                     b2.WithOwner()
                                         .HasForeignKey("PricingTierTravelProgramId", "PricingTierId");
 
-                                    b2.OwnsMany("Mistria.Domain.Models.GroupPricing", "GroupPricing", b3 =>
+                                    b2.OwnsMany("GateOfEgypt.Domain.Models.GroupPricing", "GroupPricing", b3 =>
                                         {
                                             b3.Property<int>("PricingDateRangePricingTierTravelProgramId")
                                                 .HasColumnType("int");

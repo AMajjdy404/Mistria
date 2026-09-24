@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "Mistria.API": {
+    "GateOfEgypt.API": {
       "commandName": "Project",
       "launchBrowser": true,
       "environmentVariables": {

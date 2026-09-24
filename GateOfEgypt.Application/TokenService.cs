@@ -2,8 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using Mistria.Domain.Models;
-using Mistria.Domain.Services;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Domain.Services;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -12,7 +12,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Mistria.Application
+namespace GateOfEgypt.Application
 {
     public class TokenService: ITokenService
     {

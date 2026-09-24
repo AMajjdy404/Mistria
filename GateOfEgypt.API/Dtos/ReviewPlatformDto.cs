@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Mistria.API.Dtos
+namespace GateOfEgypt.API.Dtos
 {
     public class ReviewPlatformDto
     {

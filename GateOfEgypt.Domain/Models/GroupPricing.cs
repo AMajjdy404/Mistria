@@ -1,4 +1,4 @@
-namespace Mistria.Domain.Models
+namespace GateOfEgypt.Domain.Models
 {
     public class GroupPricing
     {

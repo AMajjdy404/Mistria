@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Mistria.Domain\Mistria.Domain.csproj" />
+    <ProjectReference Include="..\GateOfEgypt.Domain\GateOfEgypt.Domain.csproj" />
   </ItemGroup>
 
   <ItemGroup>

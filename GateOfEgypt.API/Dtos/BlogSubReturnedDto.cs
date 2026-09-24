@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Mistria.API.Dtos
+namespace GateOfEgypt.API.Dtos
 {
     public class BlogSubReturnedDto
     {

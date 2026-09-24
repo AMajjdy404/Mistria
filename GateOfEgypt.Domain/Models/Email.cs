@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Mistria.Domain.Models
+namespace GateOfEgypt.Domain.Models
 {
     public class Email
     {

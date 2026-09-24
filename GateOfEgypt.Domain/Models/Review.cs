@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Mistria.Domain.Models
+namespace GateOfEgypt.Domain.Models
 {
     public class Review
     {

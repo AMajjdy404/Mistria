@@ -1,10 +1,10 @@
 ﻿using Mapster;
-using Mistria.API.Helpers;
-using Mistria.Domain.Interfaces;
-using Mistria.Infrastructure.Implementation;
+using GateOfEgypt.API.Helpers;
+using GateOfEgypt.Domain.Interfaces;
+using GateOfEgypt.Infrastructure.Implementation;
 using System.Text.Json.Serialization;
 
-namespace Mistria.API.Extensions
+namespace GateOfEgypt.API.Extensions
 {
     public static class ApplicationServiceExtension
     {

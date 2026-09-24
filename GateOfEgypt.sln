@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36202.13 d17.14
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mistria.API", "Mistria.API\Mistria.API.csproj", "{9C1F6166-5607-41B4-8257-247873785574}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GateOfEgypt.API", "GateOfEgypt.API\GateOfEgypt.API.csproj", "{9C1F6166-5607-41B4-8257-247873785574}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mistria.Domain", "Mistria.Domain\Mistria.Domain.csproj", "{E4AAA986-F558-4FA9-96D1-FE7A591BF3E5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GateOfEgypt.Domain", "GateOfEgypt.Domain\GateOfEgypt.Domain.csproj", "{E4AAA986-F558-4FA9-96D1-FE7A591BF3E5}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mistria.Infrastructure", "Mistria.Infrastructure\Mistria.Infrastructure.csproj", "{4DCF990E-13E6-4F84-8954-32A1E78E4EE9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GateOfEgypt.Infrastructure", "GateOfEgypt.Infrastructure\GateOfEgypt.Infrastructure.csproj", "{4DCF990E-13E6-4F84-8954-32A1E78E4EE9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mistria.Application", "Mistria.Application\Mistria.Application.csproj", "{D8F64E37-94EC-467B-91E6-6D4320AA5F11}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GateOfEgypt.Application", "GateOfEgypt.Application\GateOfEgypt.Application.csproj", "{D8F64E37-94EC-467B-91E6-6D4320AA5F11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

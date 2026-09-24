@@ -1,11 +1,11 @@
 ﻿using MailKit.Net.Smtp;
 using Microsoft.Extensions.Options;
 using MimeKit;
-using Mistria.Domain.Models;
-using Mistria.Domain.Services;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Domain.Services;
 using MailKit.Security;
 
-namespace Mistria.Application
+namespace GateOfEgypt.Application
 {
     public class MailService : IMailService
     {

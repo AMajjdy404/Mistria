@@ -2,10 +2,10 @@ using System.Security.Claims;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
-using Mistria.Domain.Interfaces;
-using Mistria.Domain.Models;
+using GateOfEgypt.Domain.Interfaces;
+using GateOfEgypt.Domain.Models;
 
-namespace Mistria.API.Helpers
+namespace GateOfEgypt.API.Helpers
 {
     // Records who did what and when for every mutating (non-GET) Dashboard action.
     // Applied to DashboardController as a class-level [TypeFilter], so it never touches the public WebsiteController.

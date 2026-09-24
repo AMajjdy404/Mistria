@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Mistria.API.Dtos;
-using Mistria.Domain.Interfaces;
-using Mistria.Domain.Models;
-using Mistria.Domain.Services;
+using GateOfEgypt.API.Dtos;
+using GateOfEgypt.Domain.Interfaces;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Domain.Services;
 
-namespace Mistria.API.Controllers
+namespace GateOfEgypt.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

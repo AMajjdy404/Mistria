@@ -1,4 +1,4 @@
-namespace Mistria.API.Helpers
+namespace GateOfEgypt.API.Helpers
 {
     // Prefixes stored relative file paths (e.g. "/Images/Programs/xyz.jpg") with the API's base URL
     // so clients get a directly usable absolute URL. BaseApiUrl is set once at startup from config.

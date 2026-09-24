@@ -10,11 +10,11 @@ WORKDIR /src
 COPY . .
 
 # استرجع الحزم وابني المشروع
-RUN dotnet restore "Mistria.API/Mistria.API.csproj"
-RUN dotnet publish "Mistria.API/Mistria.API.csproj" -c Release -o /app/publish
+RUN dotnet restore "GateOfEgypt.API/GateOfEgypt.API.csproj"
+RUN dotnet publish "GateOfEgypt.API/GateOfEgypt.API.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
 
-ENTRYPOINT ["dotnet", "Mistria.API.dll"]
+ENTRYPOINT ["dotnet", "GateOfEgypt.API.dll"]

@@ -1,13 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
-using Mistria.Application;
-using Mistria.Domain.Models;
-using Mistria.Domain.Services;
-using Mistria.Infrastructure.Data;
+using GateOfEgypt.Application;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Domain.Services;
+using GateOfEgypt.Infrastructure.Data;
 using System.Text;
 
-namespace Mistria.API.Extensions
+namespace GateOfEgypt.API.Extensions
 {
     public static class IdentityExtension
     {

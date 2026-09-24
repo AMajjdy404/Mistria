@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
-using Mistria.Domain.Models;
+using GateOfEgypt.Domain.Models;
 
-namespace Mistria.API.Helpers
+namespace GateOfEgypt.API.Helpers
 {
     public class AdminSeeding
     {

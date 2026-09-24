@@ -7,14 +7,14 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Mistria.API.Dtos;
-using Mistria.API.Helpers;
-using Mistria.Domain.Interfaces;
-using Mistria.Domain.Models;
-using Mistria.Domain.Services;
+using GateOfEgypt.API.Dtos;
+using GateOfEgypt.API.Helpers;
+using GateOfEgypt.Domain.Interfaces;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Domain.Services;
 using System.Text.Json;
 
-namespace Mistria.API.Controllers
+namespace GateOfEgypt.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

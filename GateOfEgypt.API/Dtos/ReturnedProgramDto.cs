@@ -1,7 +1,7 @@
-using Mistria.Domain.Models;
+using GateOfEgypt.Domain.Models;
 using System.ComponentModel.DataAnnotations;
 
-namespace Mistria.API.Dtos
+namespace GateOfEgypt.API.Dtos
 {
     public class ReturnedProgramDto
     {

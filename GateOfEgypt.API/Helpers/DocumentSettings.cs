@@ -1,4 +1,4 @@
-﻿namespace Mistria.API.Helpers
+﻿namespace GateOfEgypt.API.Helpers
 {
     public class DocumentSettings
     {

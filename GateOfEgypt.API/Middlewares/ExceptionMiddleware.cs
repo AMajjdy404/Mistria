@@ -2,19 +2,22 @@
 using Serilog;
 using System.Diagnostics;
 using System.Text.Json;
-using Mistria.API.Dtos;
+using GateOfEgypt.API.Dtos;
 
-namespace Mistria.API.Middlewares
+namespace GateOfEgypt.API.Middlewares
 {
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly IWebHostEnvironment _env;
+        private readonly bool _showDetails;
 
-        public ExceptionMiddleware(RequestDelegate next, IWebHostEnvironment env)
+        public ExceptionMiddleware(RequestDelegate next, IWebHostEnvironment env, IConfiguration configuration)
         {
             _next = next;
             _env = env;
+            // Set "ErrorHandling:ShowDetails": true temporarily on the host to see the exception in the response.
+            _showDetails = env.IsDevelopment() || configuration.GetValue<bool>("ErrorHandling:ShowDetails");
         }
 
         public async Task InvokeAsync(HttpContext context)
@@ -38,11 +41,17 @@ namespace Mistria.API.Middlewares
             }
             catch (Exception ex)
             {
+                if (context.Response.HasStarted)
+                {
+                    LogError(context, ex, stopwatch.Elapsed.TotalMilliseconds);
+                    throw;
+                }
+
                 context.Response.StatusCode = StatusCodes.Status500InternalServerError; // التأكد من Status Code 500
                 LogError(context, ex, stopwatch.Elapsed.TotalMilliseconds);
 
                 context.Response.ContentType = "application/json";
-                var response = _env.IsDevelopment()
+                var response = _showDetails
                               ? new ErrorResponse { Message = "Internal Server Error", Details = ex.ToString() }
                               : new ErrorResponse { Message = "An unexpected error occurred. Please try again later.", Details = null };
 

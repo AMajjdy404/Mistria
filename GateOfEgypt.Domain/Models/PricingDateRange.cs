@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Mistria.Domain.Models
+namespace GateOfEgypt.Domain.Models
 {
     public class PricingDateRange
     {

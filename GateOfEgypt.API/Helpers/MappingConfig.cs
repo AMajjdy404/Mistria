@@ -1,8 +1,8 @@
 using Mapster;
-using Mistria.API.Dtos;
-using Mistria.Domain.Models;
+using GateOfEgypt.API.Dtos;
+using GateOfEgypt.Domain.Models;
 
-namespace Mistria.API.Helpers
+namespace GateOfEgypt.API.Helpers
 {
     public static class MappingConfig
     {

@@ -1,8 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using Mistria.Domain.Interfaces;
-using Mistria.Domain.Models;
-using Mistria.Infrastructure.Data;
+using GateOfEgypt.Domain.Interfaces;
+using GateOfEgypt.Domain.Models;
+using GateOfEgypt.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -10,7 +10,7 @@ using System.Linq.Expressions;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Mistria.Infrastructure.Implementation
+namespace GateOfEgypt.Infrastructure.Implementation
 {
     public class GenericRepository<T> : IGenericRepository<T> where T : class
     {

@@ -1,7 +1,7 @@
 ﻿using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace Mistria.API.Helpers
+namespace GateOfEgypt.API.Helpers
 {
     public class FileUploadOperationFilter : IOperationFilter
     {
