@@ -428,15 +428,13 @@ namespace Mistria.API.Controllers
             return (nextOrder, null);
         }
 
-        // Rejects an order update if another item already uses that order.
-        private async Task<ActionResult?> ValidateOrderForUpdateAsync<T>(IGenericRepository<T> repo, int currentId, int newOrder, Func<T, int> idSelector, Func<T, int> orderSelector) where T : class
+        // Finds the item (other than currentId) that already holds newOrder, if any, so the caller
+        // can swap the two orders instead of rejecting the update.
+        private async Task<T?> FindOrderConflictAsync<T>(IGenericRepository<T> repo, int currentId, int newOrder, Func<T, int> idSelector, Func<T, int> orderSelector) where T : class
         {
             var all = await repo.GetAllAsync();
 
-            if (all.Any(x => idSelector(x) != currentId && orderSelector(x) == newOrder))
-                return BadRequest($"Order {newOrder} is already used by another item. Please choose a different order.");
-
-            return null;
+            return all.FirstOrDefault(x => idSelector(x) != currentId && orderSelector(x) == newOrder);
         }
 
         [HttpPost("addProgram")]
@@ -597,14 +595,10 @@ namespace Mistria.API.Controllers
                 }
             }
 
+            TravelProgram? programToSwapOrderWith = null;
             if (programDto.Order.HasValue)
             {
-                var orderError = await ValidateOrderForUpdateAsync(_travelProgramRepo, id, programDto.Order.Value, p => p.Id, p => p.Order);
-                if (orderError != null)
-                {
-                    _logger.LogWarning("Invalid order: {Order}", programDto.Order);
-                    return orderError;
-                }
+                programToSwapOrderWith = await FindOrderConflictAsync(_travelProgramRepo, id, programDto.Order.Value, p => p.Id, p => p.Order);
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -641,7 +635,14 @@ namespace Mistria.API.Controllers
                 if (programDto.IsMain.HasValue)
                     program.IsMain = programDto.IsMain.Value;
                 if (programDto.Order.HasValue)
+                {
+                    if (programToSwapOrderWith != null)
+                    {
+                        programToSwapOrderWith.Order = program.Order;
+                        _travelProgramRepo.Update(programToSwapOrderWith);
+                    }
                     program.Order = programDto.Order.Value;
+                }
                 if (programDto.Included != null)
                     program.Included = programDto.Included;
                 if (programDto.Excluded != null)
@@ -981,14 +982,10 @@ namespace Mistria.API.Controllers
                 }
             }
 
+            Destination? destinationToSwapOrderWith = null;
             if (destinationDto.Order.HasValue)
             {
-                var orderError = await ValidateOrderForUpdateAsync(_destinationRepo, id, destinationDto.Order.Value, d => d.Id, d => d.Order);
-                if (orderError != null)
-                {
-                    _logger.LogWarning("Invalid order: {Order}", destinationDto.Order);
-                    return orderError;
-                }
+                destinationToSwapOrderWith = await FindOrderConflictAsync(_destinationRepo, id, destinationDto.Order.Value, d => d.Id, d => d.Order);
             }
 
             var email = User.FindFirst(ClaimTypes.Email)?.Value;
@@ -1024,7 +1021,14 @@ namespace Mistria.API.Controllers
                 if (destinationDto.IsMain.HasValue)
                     destination.IsMain = destinationDto.IsMain.Value;
                 if (destinationDto.Order.HasValue)
+                {
+                    if (destinationToSwapOrderWith != null)
+                    {
+                        destinationToSwapOrderWith.Order = destination.Order;
+                        _destinationRepo.Update(destinationToSwapOrderWith);
+                    }
                     destination.Order = destinationDto.Order.Value;
+                }
                 if (destinationDto.Included != null)
                     destination.Included = destinationDto.Included;
                 if (destinationDto.Excluded != null)

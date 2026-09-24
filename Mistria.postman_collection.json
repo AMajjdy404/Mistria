@@ -531,7 +531,7 @@
                   "key": "Order",
                   "value": "",
                   "type": "text",
-                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
+                  "description": "Optional 1-based display order. Omit to keep the current order; if another item already has this order, the two swap places."
                 },
                 {
                   "key": "ItineraryJson",
@@ -847,7 +847,7 @@
                   "key": "Order",
                   "value": "",
                   "type": "text",
-                  "description": "Optional 1-based display order. Omit to append after the current last order; rejected if another item already uses this value."
+                  "description": "Optional 1-based display order. Omit to keep the current order; if another item already has this order, the two swap places."
                 },
                 {
                   "key": "ItineraryJson",
