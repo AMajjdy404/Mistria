@@ -39,12 +39,13 @@ namespace GateOfEgypt.Domain.Models
 
         public List<ItineraryDay> Itinerary { get; set; } = new List<ItineraryDay>();
 
-        public List<PricingTier> PricingTiers { get; set; } = new List<PricingTier>();
+        public List<ProgramPricingTier> PricingTiers { get; set; } = new List<ProgramPricingTier>();
 
         public decimal? GetStartingPrice()
         {
             var prices = PricingTiers?
-                .SelectMany(t => t.DateRanges ?? new List<PricingDateRange>())
+                .SelectMany(t => new[] { t.WithHotels, t.WithoutHotels })
+                .SelectMany(o => o?.DateRanges ?? new List<PricingDateRange>())
                 .SelectMany(d => d.GroupPricing ?? new List<GroupPricing>())
                 .Select(g => g.PricePerPerson)
                 .ToList();

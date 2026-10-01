@@ -17,7 +17,7 @@ namespace GateOfEgypt.API.Dtos
         public bool IsMain { get; set; }
         public int Order { get; set; }
         public List<ItineraryDayReturnedDto> Itinerary { get; set; }
-        public List<PricingTier> PricingTiers { get; set; }
+        public List<ProgramPricingTier> PricingTiers { get; set; }
         public decimal? StartingFromPrice { get; set; }
     }
 }

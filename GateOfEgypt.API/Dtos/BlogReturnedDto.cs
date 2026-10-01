@@ -6,5 +6,6 @@ namespace GateOfEgypt.API.Dtos
         public string Title { get; set; }
         public string Description { get; set; }
         public string CoverImage { get; set; }
+        public int Order { get; set; }
     }
 }

@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using GateOfEgypt.Domain.Models;
 
 namespace GateOfEgypt.Infrastructure.Data
@@ -43,17 +44,12 @@ namespace GateOfEgypt.Infrastructure.Data
                     day.OwnsMany(d => d.Events);
                 });
 
-                // Pricing tiers (and their nested date ranges / group pricing) stored as a single JSON column
+                // Pricing tiers (with/without hotels options, each with date ranges / group pricing / accommodation) stored as a single JSON column
                 entity.OwnsMany(p => p.PricingTiers, tier =>
                 {
                     tier.ToJson();
-                    tier.OwnsMany(t => t.DateRanges, range =>
-                    {
-                        range.OwnsMany(r => r.GroupPricing, gp =>
-                        {
-                            gp.Property(g => g.PricePerPerson).HasPrecision(18, 2);
-                        });
-                    });
+                    tier.OwnsOne(t => t.WithHotels, ConfigurePricingOption);
+                    tier.OwnsOne(t => t.WithoutHotels, ConfigurePricingOption);
                 });
             });
 
@@ -104,6 +100,19 @@ namespace GateOfEgypt.Infrastructure.Data
 
 
             base.OnModelCreating(builder);
+        }
+
+        // Shared mapping for a tier's "with hotels" / "without hotels" option (date ranges + accommodation)
+        private static void ConfigurePricingOption(OwnedNavigationBuilder<ProgramPricingTier, PricingOption> option)
+        {
+            option.OwnsMany(o => o.DateRanges, range =>
+            {
+                range.OwnsMany(r => r.GroupPricing, gp =>
+                {
+                    gp.Property(g => g.PricePerPerson).HasPrecision(18, 2);
+                });
+            });
+            option.OwnsMany(o => o.AccommodationOptions);
         }
     }
 }

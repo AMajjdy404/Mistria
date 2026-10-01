@@ -21,5 +21,7 @@ namespace GateOfEgypt.Domain.Models
 
         [Required]
         public decimal Price { get; set; }
+
+        public int Order { get; set; }
     }
 }

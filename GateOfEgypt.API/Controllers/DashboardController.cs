@@ -343,6 +343,66 @@ namespace GateOfEgypt.API.Controllers
             }
         }
 
+        private bool TryParseProgramPricingTiers(string? json, out List<ProgramPricingTier> tiers, out string error)
+        {
+            tiers = new List<ProgramPricingTier>();
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                error = "Pricing tiers JSON is required";
+                return false;
+            }
+
+            try
+            {
+                var parsed = JsonSerializer.Deserialize<List<ProgramPricingTier>>(json.Trim(), ProgramJsonOptions);
+                if (parsed == null || parsed.Count == 0)
+                {
+                    error = "Pricing tiers are required and cannot be empty";
+                    return false;
+                }
+                if (parsed.Any(t => string.IsNullOrWhiteSpace(t.Name)))
+                {
+                    error = "Each pricing tier requires a Name";
+                    return false;
+                }
+
+                foreach (var tier in parsed)
+                {
+                    tier.WithHotels ??= new PricingOption();
+                    tier.WithoutHotels ??= new PricingOption();
+                    foreach (var option in new[] { tier.WithHotels, tier.WithoutHotels })
+                    {
+                        option.DateRanges ??= new List<PricingDateRange>();
+                        option.AccommodationOptions ??= new List<AccommodationOption>();
+                    }
+
+                    if (!tier.WithHotels.DateRanges.Any() && !tier.WithoutHotels.DateRanges.Any())
+                    {
+                        error = $"Pricing tier '{tier.Name}' requires at least one date range in WithHotels or WithoutHotels";
+                        return false;
+                    }
+
+                    var accommodations = tier.WithHotels.AccommodationOptions.Concat(tier.WithoutHotels.AccommodationOptions);
+                    if (accommodations.Any(a => string.IsNullOrWhiteSpace(a.Title) || string.IsNullOrWhiteSpace(a.Description)))
+                    {
+                        error = $"Each accommodation option in pricing tier '{tier.Name}' requires a Title and Description";
+                        return false;
+                    }
+                }
+
+                tiers = parsed;
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "Failed to deserialize pricing tiers JSON: {Message} | Raw JSON: {Json}", ex.Message, json);
+                error = "Invalid pricing tiers JSON format. Expected an array of tier objects, e.g. [{\"name\":\"Gold\",\"withHotels\":{\"dateRanges\":[...],\"accommodationOptions\":[...]},\"withoutHotels\":{...}}]";
+                return false;
+            }
+        }
+
         private bool TryParsePricingTiers(string? json, out List<PricingTier> tiers, out string error)
         {
             tiers = new List<PricingTier>();
@@ -449,7 +509,7 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(itineraryError);
             }
 
-            if (!TryParsePricingTiers(programDto.PricingTiersJson, out var pricingTiers, out var pricingError))
+            if (!TryParseProgramPricingTiers(programDto.PricingTiersJson, out var pricingTiers, out var pricingError))
             {
                 _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
                 return BadRequest(pricingError);
@@ -585,10 +645,10 @@ namespace GateOfEgypt.API.Controllers
                 }
             }
 
-            var pricingTiers = program.PricingTiers ?? new List<PricingTier>();
+            var pricingTiers = program.PricingTiers ?? new List<ProgramPricingTier>();
             if (!string.IsNullOrWhiteSpace(programDto.PricingTiersJson))
             {
-                if (!TryParsePricingTiers(programDto.PricingTiersJson, out pricingTiers, out var pricingError))
+                if (!TryParseProgramPricingTiers(programDto.PricingTiersJson, out pricingTiers, out var pricingError))
                 {
                     _logger.LogWarning("Invalid pricing tiers: {Error}", pricingError);
                     return BadRequest(pricingError);
@@ -1232,6 +1292,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_weddingRepo, weddingDto.Order, w => w.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", weddingDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _weddingRepo.BeginTransactionAsync();
@@ -1246,6 +1313,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var wedding = new Wedding
                 {
+                    Order = order,
                     Title = weddingDto.Title?.Trim(),
                     Description = weddingDto.Description?.Trim(),
                     CoverImage = cover
@@ -1305,6 +1373,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Wedding? weddingToSwapOrderWith = null;
+            if (weddingDto.Order.HasValue)
+            {
+                weddingToSwapOrderWith = await FindOrderConflictAsync(_weddingRepo, id, weddingDto.Order.Value, w => w.Id, w => w.Order);
+            }
+
             string cover = wedding.CoverImage ?? string.Empty;
 
             using var transaction = await _weddingRepo.BeginTransactionAsync();
@@ -1325,6 +1399,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 wedding.CoverImage = cover;
+
+                if (weddingDto.Order.HasValue)
+                {
+                    if (weddingToSwapOrderWith != null)
+                    {
+                        weddingToSwapOrderWith.Order = wedding.Order;
+                        _weddingRepo.Update(weddingToSwapOrderWith);
+                    }
+                    wedding.Order = weddingDto.Order.Value;
+                }
 
                 _weddingRepo.Update(wedding);
                 await _weddingRepo.SaveChangesAsync();
@@ -1360,7 +1444,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var weddings = await _weddingRepo.GetAllAsync();
+            var weddings = (await _weddingRepo.GetAllAsync()).OrderBy(w => w.Order).ToList();
             var result = _mapper.Map<List<WeddingReturnedDto>>(weddings);
 
             _logger.LogInformation("Returned {Count} weddings", result.Count);
@@ -1463,6 +1547,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_eventRepo, eventDto.Order, e => e.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", eventDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _eventRepo.BeginTransactionAsync();
@@ -1477,6 +1568,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var ev = new Event
                 {
+                    Order = order,
                     Title = eventDto.Title?.Trim(),
                     Description = eventDto.Description?.Trim(),
                     CoverImage = cover
@@ -1536,6 +1628,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Event? evToSwapOrderWith = null;
+            if (eventDto.Order.HasValue)
+            {
+                evToSwapOrderWith = await FindOrderConflictAsync(_eventRepo, id, eventDto.Order.Value, e => e.Id, e => e.Order);
+            }
+
             string cover = ev.CoverImage ?? string.Empty;
 
             using var transaction = await _eventRepo.BeginTransactionAsync();
@@ -1556,6 +1654,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 ev.CoverImage = cover;
+
+                if (eventDto.Order.HasValue)
+                {
+                    if (evToSwapOrderWith != null)
+                    {
+                        evToSwapOrderWith.Order = ev.Order;
+                        _eventRepo.Update(evToSwapOrderWith);
+                    }
+                    ev.Order = eventDto.Order.Value;
+                }
 
                  _eventRepo.Update(ev);
                 await _eventRepo.SaveChangesAsync();
@@ -1591,7 +1699,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var events = await _eventRepo.GetAllAsync();
+            var events = (await _eventRepo.GetAllAsync()).OrderBy(e => e.Order).ToList();
             var result = _mapper.Map<List<EventReturnedDto>>(events);
 
             _logger.LogInformation("Returned {Count} events", result.Count);
@@ -1694,6 +1802,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_activityRepo, activityDto.Order, a => a.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", activityDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _activityRepo.BeginTransactionAsync();
@@ -1708,6 +1823,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var activity = new Activity
                 {
+                    Order = order,
                     Title = activityDto.Title?.Trim(),
                     Description = activityDto.Description?.Trim(),
                     CoverImage = cover,
@@ -1768,6 +1884,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Activity? activityToSwapOrderWith = null;
+            if (activityDto.Order.HasValue)
+            {
+                activityToSwapOrderWith = await FindOrderConflictAsync(_activityRepo, id, activityDto.Order.Value, a => a.Id, a => a.Order);
+            }
+
             string cover = activity.CoverImage ?? string.Empty;
 
             using var transaction = await _activityRepo.BeginTransactionAsync();
@@ -1790,6 +1912,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 activity.CoverImage = cover;
+
+                if (activityDto.Order.HasValue)
+                {
+                    if (activityToSwapOrderWith != null)
+                    {
+                        activityToSwapOrderWith.Order = activity.Order;
+                        _activityRepo.Update(activityToSwapOrderWith);
+                    }
+                    activity.Order = activityDto.Order.Value;
+                }
 
                  _activityRepo.Update(activity);
                 await _activityRepo.SaveChangesAsync();
@@ -1825,7 +1957,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var activities = await _activityRepo.GetAllAsync();
+            var activities = (await _activityRepo.GetAllAsync()).OrderBy(a => a.Order).ToList();
             var result = _mapper.Map<List<ActivityReturnedDto>>(activities);
 
             _logger.LogInformation("Returned {Count} activities", result.Count);
@@ -1928,6 +2060,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_serviceRepo, serviceDto.Order, s => s.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", serviceDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _serviceRepo.BeginTransactionAsync();
@@ -1942,10 +2081,12 @@ namespace GateOfEgypt.API.Controllers
 
                 var service = new Service
                 {
+                    Order = order,
                     Title = serviceDto.Title?.Trim(),
                     Description = serviceDto.Description?.Trim(),
                     CoverImage = cover,
-                    Price = serviceDto.Price
+                    Price = serviceDto.Price,
+                    IsMain = serviceDto.IsMain
                 };
 
                 await _serviceRepo.AddAsync(service);
@@ -2002,6 +2143,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Service? serviceToSwapOrderWith = null;
+            if (serviceDto.Order.HasValue)
+            {
+                serviceToSwapOrderWith = await FindOrderConflictAsync(_serviceRepo, id, serviceDto.Order.Value, s => s.Id, s => s.Order);
+            }
+
             string cover = service.CoverImage ?? string.Empty;
 
             using var transaction = await _serviceRepo.BeginTransactionAsync();
@@ -2013,6 +2160,8 @@ namespace GateOfEgypt.API.Controllers
                     service.Description = serviceDto.Description.Trim();
                 if (serviceDto.Price.HasValue)
                     service.Price = serviceDto.Price.Value;
+                if (serviceDto.IsMain.HasValue)
+                    service.IsMain = serviceDto.IsMain.Value;
 
                 if (serviceDto.CoverImage != null)
                 {
@@ -2024,6 +2173,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 service.CoverImage = cover;
+
+                if (serviceDto.Order.HasValue)
+                {
+                    if (serviceToSwapOrderWith != null)
+                    {
+                        serviceToSwapOrderWith.Order = service.Order;
+                        _serviceRepo.Update(serviceToSwapOrderWith);
+                    }
+                    service.Order = serviceDto.Order.Value;
+                }
 
                 _serviceRepo.Update(service);
                 await _serviceRepo.SaveChangesAsync();
@@ -2059,7 +2218,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var services = await _serviceRepo.GetAllAsync();
+            var services = (await _serviceRepo.GetAllAsync()).OrderBy(s => s.Order).ToList();
             var result = _mapper.Map<List<ServiceReturnedDto>>(services);
 
             _logger.LogInformation("Returned {Count} services", result.Count);
@@ -2230,6 +2389,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_founderRepo, founderDto.Order, f => f.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", founderDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _founderRepo.BeginTransactionAsync();
@@ -2244,6 +2410,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var founder = new Founder
                 {
+                    Order = order,
                     Title = founderDto.Title?.Trim(),
                     Description = founderDto.Description?.Trim(),
                     CoverImage = cover
@@ -2303,6 +2470,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Founder? founderToSwapOrderWith = null;
+            if (founderDto.Order.HasValue)
+            {
+                founderToSwapOrderWith = await FindOrderConflictAsync(_founderRepo, id, founderDto.Order.Value, f => f.Id, f => f.Order);
+            }
+
             string cover = founder.CoverImage ?? string.Empty;
 
             using var transaction = await _founderRepo.BeginTransactionAsync();
@@ -2323,6 +2496,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 founder.CoverImage = cover;
+
+                if (founderDto.Order.HasValue)
+                {
+                    if (founderToSwapOrderWith != null)
+                    {
+                        founderToSwapOrderWith.Order = founder.Order;
+                        _founderRepo.Update(founderToSwapOrderWith);
+                    }
+                    founder.Order = founderDto.Order.Value;
+                }
 
                 _founderRepo.Update(founder);
                 await _founderRepo.SaveChangesAsync();
@@ -2358,7 +2541,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var founders = await _founderRepo.GetAllAsync();
+            var founders = (await _founderRepo.GetAllAsync()).OrderBy(f => f.Order).ToList();
             var result = _mapper.Map<List<FounderReturnedDto>>(founders);
 
             _logger.LogInformation("Returned {Count} founders", result.Count);
@@ -2462,6 +2645,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_blogRepo, blogDto.Order, b => b.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", blogDto.Order);
+                return orderError;
+            }
+
             string cover = string.Empty;
 
             using var transaction = await _blogRepo.BeginTransactionAsync();
@@ -2476,6 +2666,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var blog = new Blog
                 {
+                    Order = order,
                     Title = blogDto.Title?.Trim(),
                     Description = blogDto.Description?.Trim(),
                     CoverImage = cover
@@ -2528,6 +2719,13 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            var (order, orderError) = await ResolveOrderForCreateAsync(_blogRepo, blogDto.Order, b => b.Order);
+            if (orderError != null)
+            {
+                _logger.LogWarning("Invalid order: {Order}", blogDto.Order);
+                return orderError;
+            }
+
             if (string.IsNullOrWhiteSpace(blogDto.SubsJson))
                 return BadRequest("Subs JSON is required");
 
@@ -2550,6 +2748,10 @@ namespace GateOfEgypt.API.Controllers
 
             if (subs.Any(s => s.Content == null || s.Content.Count == 0))
                 return BadRequest("Each sub requires non-empty Content");
+
+            // Values are rich text (HTML): strip anything unsafe, convert plain text to HTML
+            foreach (var sub in subs)
+                sub.Content = BlogContentHtml.Format(sub.Content);
 
             var subImages = blogDto.SubImages ?? new List<IFormFile>();
             if (subImages.Any())
@@ -2576,6 +2778,7 @@ namespace GateOfEgypt.API.Controllers
 
                 var blog = new Blog
                 {
+                    Order = order,
                     Title = blogDto.Title?.Trim(),
                     Description = blogDto.Description?.Trim(),
                     CoverImage = cover
@@ -2669,6 +2872,12 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest(ModelState);
             }
 
+            Blog? blogToSwapOrderWith = null;
+            if (blogDto.Order.HasValue)
+            {
+                blogToSwapOrderWith = await FindOrderConflictAsync(_blogRepo, id, blogDto.Order.Value, b => b.Id, b => b.Order);
+            }
+
             string cover = blog.CoverImage ?? string.Empty;
 
             using var transaction = await _blogRepo.BeginTransactionAsync();
@@ -2689,6 +2898,16 @@ namespace GateOfEgypt.API.Controllers
                 }
 
                 blog.CoverImage = cover;
+
+                if (blogDto.Order.HasValue)
+                {
+                    if (blogToSwapOrderWith != null)
+                    {
+                        blogToSwapOrderWith.Order = blog.Order;
+                        _blogRepo.Update(blogToSwapOrderWith);
+                    }
+                    blog.Order = blogDto.Order.Value;
+                }
 
                 _blogRepo.Update(blog);
                 await _blogRepo.SaveChangesAsync();
@@ -2724,7 +2943,7 @@ namespace GateOfEgypt.API.Controllers
             if (user == null)
                 return NotFound("User not found");
 
-            var blogs = await _blogRepo.GetAllAsync();
+            var blogs = (await _blogRepo.GetAllAsync()).OrderBy(b => b.Order).ToList();
             var result = _mapper.Map<List<BlogReturnedDto>>(blogs);
 
             _logger.LogInformation("Returned {Count} blogs", result.Count);
@@ -2857,6 +3076,9 @@ namespace GateOfEgypt.API.Controllers
                 return BadRequest("Invalid content JSON format. Use {\"key\": \"value\", \"key2\": \"value2\"}");
             }
 
+            // Values are rich text (HTML): strip anything unsafe, convert plain text to HTML
+            content = BlogContentHtml.Format(content);
+
             if (content.Count == 0)
                 return BadRequest("Content is required and cannot be empty");
 
@@ -2970,6 +3192,9 @@ namespace GateOfEgypt.API.Controllers
 
                 if (content.Count == 0)
                     return BadRequest("Content is required and cannot be empty");
+
+                // Values are rich text (HTML): strip anything unsafe, convert plain text to HTML
+                content = BlogContentHtml.Format(content);
             }
 
             string cover = blogSub.CoverImage ?? string.Empty;

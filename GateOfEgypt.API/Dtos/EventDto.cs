@@ -12,5 +12,7 @@ namespace GateOfEgypt.API.Dtos
 
         [Required(ErrorMessage = "Cover image is required")]
         public IFormFile CoverImage { get; set; }
+        // Optional: 1-based display order. When omitted, the item is appended after the current last order.
+        public int? Order { get; set; }
     }
 }

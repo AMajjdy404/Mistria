@@ -24,5 +24,7 @@ namespace GateOfEgypt.API.Dtos
         // parsed Subs array that SubImages[i] belongs to (e.g. [0, 2] to give sub 0 and sub 2
         // an image while leaving sub 1 without one).
         public List<int>? SubImageIndexes { get; set; }
+        // Optional: 1-based display order. When omitted, the item is appended after the current last order.
+        public int? Order { get; set; }
     }
 }

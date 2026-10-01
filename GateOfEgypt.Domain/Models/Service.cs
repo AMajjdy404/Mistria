@@ -21,5 +21,9 @@ namespace GateOfEgypt.Domain.Models
 
         [Required]
         public decimal Price { get; set; }
+
+        public bool? IsMain { get; set; } = false;
+
+        public int Order { get; set; }
     }
 }

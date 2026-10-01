@@ -312,12 +312,24 @@ namespace GateOfEgypt.API.Controllers
         }
         #endregion
 
+        [HttpGet("getMainServices")]
+        public async Task<ActionResult<List<ServiceReturnedDto>>> GetMainServices()
+        {
+            _logger.LogInformation("Received GetMainServices request");
+
+            var services = (await _serviceRepo.GetAllAsync(s => s.IsMain == true)).OrderBy(s => s.Order).ToList();
+            var result = _mapper.Map<List<ServiceReturnedDto>>(services);
+
+            _logger.LogInformation("Returned {Count} main services", result.Count);
+            return Ok(result);
+        }
+
         [HttpGet("getAllServices")]
         public async Task<ActionResult<List<ServiceReturnedDto>>> GetAllServices()
         {
             _logger.LogInformation("Received GetAllServices request");
 
-            var services = await _serviceRepo.GetAllAsync();
+            var services = (await _serviceRepo.GetAllAsync()).OrderBy(s => s.Order).ToList();
             var result = _mapper.Map<List<ServiceReturnedDto>>(services);
 
             _logger.LogInformation("Returned {Count} services", result.Count);
@@ -329,7 +341,7 @@ namespace GateOfEgypt.API.Controllers
         {
             _logger.LogInformation("Received GetAllActivities request");
 
-            var activities = await _activityRepo.GetAllAsync();
+            var activities = (await _activityRepo.GetAllAsync()).OrderBy(a => a.Order).ToList();
             var result = _mapper.Map<List<ActivityReturnedDto>>(activities);
 
             _logger.LogInformation("Returned {Count} activities", result.Count);
@@ -341,7 +353,7 @@ namespace GateOfEgypt.API.Controllers
         {
             _logger.LogInformation("Received GetAllEvents request");
 
-            var events = await _eventRepo.GetAllAsync();
+            var events = (await _eventRepo.GetAllAsync()).OrderBy(e => e.Order).ToList();
             var result = _mapper.Map<List<EventReturnedDto>>(events);
 
             _logger.LogInformation("Returned {Count} events", result.Count);
@@ -353,7 +365,7 @@ namespace GateOfEgypt.API.Controllers
         {
             _logger.LogInformation("Received GetAllWeddings request");
 
-            var weddings = await _weddingRepo.GetAllAsync();
+            var weddings = (await _weddingRepo.GetAllAsync()).OrderBy(w => w.Order).ToList();
             var result = _mapper.Map<List<WeddingReturnedDto>>(weddings);
 
             _logger.LogInformation("Returned {Count} weddings", result.Count);
@@ -380,7 +392,7 @@ namespace GateOfEgypt.API.Controllers
         {
             _logger.LogInformation("Received GetAllFounders request");
 
-            var founders = await _founderRepo.GetAllAsync();
+            var founders = (await _founderRepo.GetAllAsync()).OrderBy(f => f.Order).ToList();
             var result = _mapper.Map<List<FounderReturnedDto>>(founders);
 
             _logger.LogInformation("Returned {Count} founders", result.Count);
@@ -396,7 +408,7 @@ namespace GateOfEgypt.API.Controllers
         {
             _logger.LogInformation("Received GetAllBlogs request");
 
-            var blogs = await _blogRepo.GetAllAsync();
+            var blogs = (await _blogRepo.GetAllAsync()).OrderBy(b => b.Order).ToList();
             var result = _mapper.Map<List<BlogReturnedDto>>(blogs);
 
             _logger.LogInformation("Returned {Count} blogs", result.Count);

@@ -6,5 +6,7 @@
         public string? Description { get; set; }
         public IFormFile? CoverImage { get; set; }
         public decimal? Price { get; set; }
+        public bool? IsMain { get; set; }
+        public int? Order { get; set; }
     }
 }

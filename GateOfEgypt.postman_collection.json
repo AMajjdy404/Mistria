@@ -418,7 +418,7 @@
                 },
                 {
                   "key": "PricingTiersJson",
-                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"9-16 Pax\",\n            \"pricePerPerson\": 1245\n          },\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 1305\n          },\n          {\n            \"groupSizeLabel\": \"2-4 Pax\",\n            \"pricePerPerson\": 1615\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 2500\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"withHotels\": {\n      \"dateRanges\": [\n        {\n          \"startDate\": \"2026-05-01\",\n          \"endDate\": \"2026-09-30\",\n          \"groupPricing\": [\n            {\n              \"groupSizeLabel\": \"9-16 Pax\",\n              \"pricePerPerson\": 1245\n            },\n            {\n              \"groupSizeLabel\": \"5-8 Pax\",\n              \"pricePerPerson\": 1305\n            },\n            {\n              \"groupSizeLabel\": \"2-4 Pax\",\n              \"pricePerPerson\": 1615\n            },\n            {\n              \"groupSizeLabel\": \"Solo\",\n              \"pricePerPerson\": 2500\n            }\n          ]\n        }\n      ],\n      \"accommodationOptions\": [\n        {\n          \"title\": \"Cairo\",\n          \"description\": \"Steigenberger Pyramids / Concorde El-Salam / Movenpick Media City or similar\"\n        },\n        {\n          \"title\": \"Luxor\",\n          \"description\": \"Steigenberger Hotels / Sonesta St. George / Jolie Ville Resort or similar\"\n        },\n        {\n          \"title\": \"Cruise\",\n          \"description\": \"MS/ Royal Beau Rivage - M/S Royal Signature or similar\"\n        }\n      ]\n    },\n    \"withoutHotels\": {\n      \"dateRanges\": [\n        {\n          \"startDate\": \"2026-05-01\",\n          \"endDate\": \"2026-09-30\",\n          \"groupPricing\": [\n            {\n              \"groupSizeLabel\": \"9-16 Pax\",\n              \"pricePerPerson\": 845\n            },\n            {\n              \"groupSizeLabel\": \"Solo\",\n              \"pricePerPerson\": 1700\n            }\n          ]\n        }\n      ],\n      \"accommodationOptions\": []\n    }\n  }\n]",
                   "type": "text",
                   "description": "JSON array of pricing tier objects. See collection docs."
                 }
@@ -553,7 +553,7 @@
                 },
                 {
                   "key": "PricingTiersJson",
-                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"dateRanges\": [\n      {\n        \"startDate\": \"2026-05-01\",\n        \"endDate\": \"2026-09-30\",\n        \"groupPricing\": [\n          {\n            \"groupSizeLabel\": \"9-16 Pax\",\n            \"pricePerPerson\": 1245\n          },\n          {\n            \"groupSizeLabel\": \"5-8 Pax\",\n            \"pricePerPerson\": 1305\n          },\n          {\n            \"groupSizeLabel\": \"2-4 Pax\",\n            \"pricePerPerson\": 1615\n          },\n          {\n            \"groupSizeLabel\": \"Solo\",\n            \"pricePerPerson\": 2500\n          }\n        ]\n      }\n    ]\n  }\n]",
+                  "value": "[\n  {\n    \"name\": \"Gold\",\n    \"isMostChosen\": true,\n    \"withHotels\": {\n      \"dateRanges\": [\n        {\n          \"startDate\": \"2026-05-01\",\n          \"endDate\": \"2026-09-30\",\n          \"groupPricing\": [\n            {\n              \"groupSizeLabel\": \"9-16 Pax\",\n              \"pricePerPerson\": 1245\n            },\n            {\n              \"groupSizeLabel\": \"5-8 Pax\",\n              \"pricePerPerson\": 1305\n            },\n            {\n              \"groupSizeLabel\": \"2-4 Pax\",\n              \"pricePerPerson\": 1615\n            },\n            {\n              \"groupSizeLabel\": \"Solo\",\n              \"pricePerPerson\": 2500\n            }\n          ]\n        }\n      ],\n      \"accommodationOptions\": [\n        {\n          \"title\": \"Cairo\",\n          \"description\": \"Steigenberger Pyramids / Concorde El-Salam / Movenpick Media City or similar\"\n        },\n        {\n          \"title\": \"Luxor\",\n          \"description\": \"Steigenberger Hotels / Sonesta St. George / Jolie Ville Resort or similar\"\n        },\n        {\n          \"title\": \"Cruise\",\n          \"description\": \"MS/ Royal Beau Rivage - M/S Royal Signature or similar\"\n        }\n      ]\n    },\n    \"withoutHotels\": {\n      \"dateRanges\": [\n        {\n          \"startDate\": \"2026-05-01\",\n          \"endDate\": \"2026-09-30\",\n          \"groupPricing\": [\n            {\n              \"groupSizeLabel\": \"9-16 Pax\",\n              \"pricePerPerson\": 845\n            },\n            {\n              \"groupSizeLabel\": \"Solo\",\n              \"pricePerPerson\": 1700\n            }\n          ]\n        }\n      ],\n      \"accommodationOptions\": []\n    }\n  }\n]",
                   "type": "text",
                   "description": "JSON array of pricing tier objects. See collection docs."
                 }
@@ -1005,6 +1005,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -1056,6 +1062,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
                 }
               ]
             }
@@ -1183,6 +1195,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -1234,6 +1252,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
                 }
               ]
             }
@@ -1367,6 +1391,12 @@
                   "value": "150",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -1424,6 +1454,12 @@
                   "value": "160",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
                 }
               ]
             }
@@ -1557,6 +1593,18 @@
                   "value": "60",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Optional: true to show the service in getMainServices."
                 }
               ]
             }
@@ -1614,6 +1662,18 @@
                   "value": "65",
                   "type": "text",
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
+                },
+                {
+                  "key": "IsMain",
+                  "value": "false",
+                  "type": "text",
+                  "description": "Optional: true to show the service in getMainServices."
                 }
               ]
             }
@@ -1803,6 +1863,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -1854,6 +1920,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
                 }
               ]
             }
@@ -1981,6 +2053,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -2028,7 +2106,7 @@
                 },
                 {
                   "key": "SubsJson",
-                  "value": "[\n  {\n    \"title\": \"Frequently Asked Questions\",\n    \"content\": {\n      \"What is included?\": \"Everything listed in the Included section.\"\n    }\n  },\n  {\n    \"title\": \"Why Book With Us\",\n    \"content\": {\n      \"Local experts\": \"Certified Egyptologist guides on every trip.\"\n    }\n  },\n  {\n    \"title\": \"What Our Travelers Say\",\n    \"content\": {\n      \"Rated 4.9/5\": \"Based on 5,000+ verified reviews.\"\n    }\n  }\n]",
+                  "value": "[\n  {\n    \"title\": \"Frequently Asked Questions\",\n    \"content\": {\n      \"What is included?\": \"<p>Everything listed in the Included section.</p>\"\n    }\n  },\n  {\n    \"title\": \"Why Book With Us\",\n    \"content\": {\n      \"Local experts\": \"<p>Certified Egyptologist guides on every trip.</p>\"\n    }\n  },\n  {\n    \"title\": \"What Our Travelers Say\",\n    \"content\": {\n      \"Rated 4.9/5\": \"<p>Based on 5,000+ verified reviews.</p>\"\n    }\n  }\n]",
                   "type": "text",
                   "description": "JSON array of { title, content } - content is a key/value object. This example has 3 subs (index 0, 1, 2)."
                 },
@@ -2055,6 +2133,12 @@
                   "value": "2",
                   "type": "text",
                   "description": "Sub 2 gets the 2nd SubImages file. Sub 1 is left with no image since it is not referenced here."
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: 1-based display order. If omitted, appended after the last item."
                 }
               ]
             }
@@ -2106,6 +2190,12 @@
                   "type": "file",
                   "src": [],
                   "description": ""
+                },
+                {
+                  "key": "Order",
+                  "value": "1",
+                  "type": "text",
+                  "description": "Optional: new display order. If another item already has it, the two swap orders."
                 }
               ]
             }
@@ -2236,9 +2326,9 @@
                 },
                 {
                   "key": "ContentJson",
-                  "value": "{\n  \"What is included?\": \"Everything listed in the Included section.\",\n  \"Can I cancel?\": \"Yes, up to 48 hours before the trip.\"\n}",
+                  "value": "{\n  \"What is included?\": \"<p>Everything listed in the Included section.</p>\",\n  \"Can I cancel?\": \"<p>Yes, up to 48 hours before the trip.</p>\"\n}",
                   "type": "text",
-                  "description": "JSON object of key/value pairs (e.g. question -> answer). Required and cannot be empty."
+                  "description": "JSON object: key = section heading (plain text), value = HTML from the rich text editor. HTML is sanitized on save; plain text is converted to <p>/<br>."
                 }
               ]
             }
@@ -2293,9 +2383,9 @@
                 },
                 {
                   "key": "ContentJson",
-                  "value": "{\n  \"What is included?\": \"Everything listed in the Included section.\",\n  \"Can I cancel?\": \"Yes, up to 48 hours before the trip.\"\n}",
+                  "value": "{\n  \"What is included?\": \"<p>Everything listed in the Included section.</p>\",\n  \"Can I cancel?\": \"<p>Yes, up to 48 hours before the trip.</p>\"\n}",
                   "type": "text",
-                  "description": ""
+                  "description": "JSON object: key = section heading (plain text), value = HTML from the rich text editor. HTML is sanitized on save; plain text is converted to <p>/<br>."
                 }
               ]
             }
@@ -3976,6 +4066,29 @@
               ]
             },
             "description": "",
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Main Services",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/website/getMainServices",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "website",
+                "getMainServices"
+              ]
+            },
+            "description": "Services with IsMain = true, sorted by Order.",
             "auth": {
               "type": "noauth"
             }

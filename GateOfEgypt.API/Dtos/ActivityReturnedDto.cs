@@ -7,5 +7,6 @@
         public string Description { get; set; }
         public string CoverImage { get; set; }
         public decimal Price { get; set; }
+        public int Order { get; set; }
     }
 }

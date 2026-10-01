@@ -18,5 +18,7 @@ namespace GateOfEgypt.Domain.Models
         public string Description { get; set; }
 
         public string CoverImage { get; set; }
+
+        public int Order { get; set; }
     }
 }

@@ -49,8 +49,10 @@ namespace GateOfEgypt.API.Helpers
             TypeAdapterConfig<Blog, BlogReturnedDto>.NewConfig()
                 .Map(d => d.CoverImage, s => UrlHelper.Prefix(s.CoverImage));
 
+            // Content is formatted on read too, so entries saved as plain text before the rich text editor still render with their line breaks
             TypeAdapterConfig<BlogSub, BlogSubReturnedDto>.NewConfig()
-                .Map(d => d.CoverImage, s => UrlHelper.Prefix(s.CoverImage));
+                .Map(d => d.CoverImage, s => UrlHelper.Prefix(s.CoverImage))
+                .Map(d => d.Content, s => BlogContentHtml.Format(s.Content));
 
             TypeAdapterConfig<PaymentMethod, PaymentMethodReturnedDto>.NewConfig();
 
